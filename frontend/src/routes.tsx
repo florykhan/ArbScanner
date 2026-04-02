@@ -1,5 +1,6 @@
 import { createBrowserRouter } from "react-router";
 import Layout from "./components/Layout";
+import Home from "./pages/home/Home";
 import Dashboard from "./pages/dashboard/Dashboard";
 import Events from "./pages/events/Events";
 import EventDetails from "./pages/event-details/EventDetails";
@@ -12,7 +13,8 @@ export const router = createBrowserRouter([
     path: "/",
     Component: Layout,
     children: [
-      { index: true, Component: Dashboard },
+      { index: true, Component: Home },
+      { path: "dashboard", Component: Dashboard },
       { path: "events", Component: Events },
       { path: "events/:id", Component: EventDetails },
       { path: "alerts", Component: Alerts },

@@ -1,16 +1,18 @@
 import { Outlet, NavLink } from "react-router";
-import { 
-  LayoutDashboard, 
-  Calendar, 
-  Bell, 
+import {
+  Home,
+  LayoutDashboard,
+  Calendar,
+  Bell,
   Settings,
-  TrendingUp
+  TrendingUp,
 } from "lucide-react";
 import { Toaster } from "./ui/sonner";
 
 export default function Layout() {
   const navItems = [
-    { to: "/", icon: LayoutDashboard, label: "Dashboard" },
+    { to: "/", icon: Home, label: "Home" },
+    { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { to: "/events", icon: Calendar, label: "Events" },
     { to: "/alerts", icon: Bell, label: "Alerts" },
     { to: "/admin/manage", icon: Settings, label: "Manage Data" },
@@ -21,10 +23,15 @@ export default function Layout() {
       {/* Sidebar */}
       <aside className="w-20 bg-slate-900 border-r border-slate-800 flex flex-col items-center py-6">
         <div className="mb-8">
-          <div className="flex flex-col items-center gap-1">
+          <NavLink
+            to="/"
+            end
+            className="flex flex-col items-center gap-1 rounded-lg outline-none ring-offset-slate-900 focus-visible:ring-2 focus-visible:ring-emerald-500/60"
+            title="Home"
+          >
             <TrendingUp className="h-8 w-8 text-emerald-400" />
             <span className="text-[10px] text-slate-400 font-medium tracking-wider">ARB</span>
-          </div>
+          </NavLink>
         </div>
         
         <nav className="flex-1 w-full">
@@ -33,7 +40,11 @@ export default function Layout() {
               <li key={item.to}>
                 <NavLink
                   to={item.to}
-                  end={item.to === "/" || item.to === "/admin/manage"}
+                  end={
+                    item.to === "/" ||
+                    item.to === "/dashboard" ||
+                    item.to === "/admin/manage"
+                  }
                   className={({ isActive }) =>
                     `flex flex-col items-center gap-1 px-2 py-3 rounded-lg transition-all group ${
                       isActive
