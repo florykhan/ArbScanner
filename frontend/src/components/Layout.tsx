@@ -1,6 +1,5 @@
 import { Outlet, NavLink } from "react-router";
 import {
-  Home,
   LayoutDashboard,
   Calendar,
   Bell,
@@ -11,7 +10,6 @@ import { Toaster } from "./ui/sonner";
 
 export default function Layout() {
   const navItems = [
-    { to: "/", icon: Home, label: "Home" },
     { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { to: "/events", icon: Calendar, label: "Events" },
     { to: "/alerts", icon: Bell, label: "Alerts" },
@@ -26,8 +24,14 @@ export default function Layout() {
           <NavLink
             to="/"
             end
-            className="flex flex-col items-center gap-1 rounded-lg outline-none ring-offset-slate-900 focus-visible:ring-2 focus-visible:ring-emerald-500/60"
-            title="Home"
+            title="ArbScanner — home"
+            className={({ isActive }) =>
+              `flex flex-col items-center gap-1 rounded-lg px-1 py-0.5 outline-none ring-offset-slate-900 transition-colors focus-visible:ring-2 focus-visible:ring-emerald-500/60 ${
+                isActive
+                  ? "ring-1 ring-emerald-500/35 bg-emerald-950/30"
+                  : "hover:bg-slate-800/50"
+              }`
+            }
           >
             <TrendingUp className="h-8 w-8 text-emerald-400" />
             <span className="text-[10px] text-slate-400 font-medium tracking-wider">ARB</span>
@@ -40,11 +44,7 @@ export default function Layout() {
               <li key={item.to}>
                 <NavLink
                   to={item.to}
-                  end={
-                    item.to === "/" ||
-                    item.to === "/dashboard" ||
-                    item.to === "/admin/manage"
-                  }
+                  end={item.to === "/dashboard" || item.to === "/admin/manage"}
                   className={({ isActive }) =>
                     `flex flex-col items-center gap-1 px-2 py-3 rounded-lg transition-all group ${
                       isActive
