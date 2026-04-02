@@ -1,0 +1,63 @@
+# Dependencies
+node_modules/
+vendor/
+.pnp
+.pnp.js
+
+# Build / cache
+dist/
+build/
+.next/
+out/
+.cache/
+*.tsbuildinfo
+.turbo/
+.parcel-cache/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Logs and debug
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE / editor
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+*.swo
+*~
+
+# Testing / coverage
+coverage/
+.nyc_output/
+*.lcov
+
+# Python (if used later)
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Misc
+*.local
+.temp/
+tmp/
+
+# Local README example / template (not published)
+README (example).md
+README 2.md
+README.example.md
