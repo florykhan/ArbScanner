@@ -21,6 +21,7 @@ import {
 } from "recharts";
 import { Card, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
+import { CommandBar } from "../../components/command/CommandBar";
 import {
   arbitrageOpportunities,
   events,
@@ -153,6 +154,7 @@ export default function Home() {
                 Monitor prediction markets and detect arbitrage opportunities
                 across exchanges.
               </p>
+              <CommandBar className="mt-4 max-w-xl" />
             </div>
 
             <div className="flex shrink-0 gap-6 sm:gap-8 border-t border-slate-800/80 pt-3 lg:border-t-0 lg:pt-0">

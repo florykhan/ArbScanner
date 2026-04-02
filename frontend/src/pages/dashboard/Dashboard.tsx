@@ -1,9 +1,11 @@
+import { useMemo } from "react";
 import { Link } from "react-router";
 import { TrendingUp, Clock, Zap, ExternalLink } from "lucide-react";
 import { Card, CardContent } from "../../components/ui/card";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import ArbitrageFlow from "../../components/ArbitrageFlow";
+import { ScannerConsole } from "../../components/command/ScannerConsole";
 import { arbitrageOpportunities } from "../../data/mockData";
 
 export default function Dashboard() {
@@ -12,6 +14,21 @@ export default function Dashboard() {
     .sort((a, b) => b.profitPercent - a.profitPercent);
 
   const topOpportunity = activeOpportunities[0];
+
+  const scannerLines = useMemo(() => {
+    const n = activeOpportunities.length;
+    const top = topOpportunity?.eventTitle ?? "—";
+    const shortTop = top.length > 52 ? `${top.slice(0, 49)}…` : top;
+    return [
+      { text: "scanning 8 exchanges…", variant: "muted" as const },
+      { text: `${n} opportunit${n === 1 ? "y" : "ies"} detected`, variant: "default" as const },
+      {
+        text: `highest spread candidate: ${shortTop}`,
+        variant: "accent" as const,
+      },
+      { text: "feed refreshed 30s ago", variant: "muted" as const },
+    ];
+  }, [activeOpportunities.length, topOpportunity?.eventTitle]);
 
   const formatTimeAgo = (dateString: string) => {
     const minutes = Math.floor((Date.now() - new Date(dateString).getTime()) / 60000);
@@ -46,6 +63,8 @@ export default function Dashboard() {
       </div>
 
       <div className="px-8 py-8">
+        <ScannerConsole lines={scannerLines} className="mb-6 max-w-3xl" />
+
         {/* Best Opportunity Highlight */}
         {topOpportunity && (
           <Card className="mb-8 bg-gradient-to-br from-emerald-950 to-slate-900 border-emerald-800 overflow-hidden">

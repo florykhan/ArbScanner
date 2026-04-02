@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Outlet, NavLink } from "react-router";
 import {
   LayoutDashboard,
@@ -5,10 +6,24 @@ import {
   Bell,
   Settings,
   TrendingUp,
+  Search,
 } from "lucide-react";
 import { Toaster } from "./ui/sonner";
+import { GlobalCommandPalette } from "./command/GlobalCommandPalette";
 
 export default function Layout() {
+  const [commandOpen, setCommandOpen] = useState(false);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setCommandOpen((o) => !o);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
   const navItems = [
     { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { to: "/events", icon: Calendar, label: "Events" },
@@ -62,6 +77,15 @@ export default function Layout() {
           </ul>
         </nav>
 
+        <button
+          type="button"
+          onClick={() => setCommandOpen(true)}
+          className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg border border-slate-800 bg-slate-900/50 text-slate-500 transition-colors hover:border-slate-700 hover:bg-slate-800 hover:text-emerald-400"
+          title="Command palette (⌘K)"
+        >
+          <Search className="h-4 w-4" />
+        </button>
+
         <div className="text-[10px] text-slate-600 text-center">
           <div className="w-2 h-2 bg-emerald-500 rounded-full mx-auto mb-1 animate-pulse"></div>
           <p>LIVE</p>
@@ -72,6 +96,7 @@ export default function Layout() {
       <main className="flex-1 overflow-auto bg-slate-950">
         <Outlet />
       </main>
+      <GlobalCommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
       <Toaster />
     </div>
   );
