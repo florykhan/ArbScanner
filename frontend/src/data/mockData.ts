@@ -24,6 +24,10 @@ export interface ArbitrageOpportunity {
   eventId: string;
   eventTitle: string;
   profitPercent: number;
+  /** Cross-venue quoted spread (%) — analytical mock */
+  spreadPercent: number;
+  /** Notional volume (USD) — analytical mock */
+  volume: number;
   buyExchange: string;
   sellExchange: string;
   detectedTime: string;
@@ -212,6 +216,8 @@ export const arbitrageOpportunities: ArbitrageOpportunity[] = [
     eventId: '1',
     eventTitle: 'Will Bitcoin reach $100,000 by end of 2026?',
     profitPercent: 6.9,
+    spreadPercent: 5.4,
+    volume: 428_000,
     buyExchange: 'Kalshi',
     sellExchange: 'Augur',
     detectedTime: new Date(Date.now() - 15 * 60000).toISOString(),
@@ -223,6 +229,8 @@ export const arbitrageOpportunities: ArbitrageOpportunity[] = [
     eventId: '2',
     eventTitle: 'US Federal Reserve Rate Decision - May 2026',
     profitPercent: 5.3,
+    spreadPercent: 4.1,
+    volume: 312_000,
     buyExchange: 'Polymarket',
     sellExchange: 'PredictIt',
     detectedTime: new Date(Date.now() - 45 * 60000).toISOString(),
@@ -234,6 +242,8 @@ export const arbitrageOpportunities: ArbitrageOpportunity[] = [
     eventId: '3',
     eventTitle: 'Tesla Stock above $300 by Q3 2026?',
     profitPercent: 7.7,
+    spreadPercent: 6.2,
+    volume: 891_000,
     buyExchange: 'Kalshi',
     sellExchange: 'Manifold',
     detectedTime: new Date(Date.now() - 30 * 60000).toISOString(),
@@ -245,6 +255,8 @@ export const arbitrageOpportunities: ArbitrageOpportunity[] = [
     eventId: '1',
     eventTitle: 'Will Bitcoin reach $100,000 by end of 2026?',
     profitPercent: 3.4,
+    spreadPercent: 2.8,
+    volume: 156_000,
     buyExchange: 'Manifold',
     sellExchange: 'Polymarket',
     detectedTime: new Date(Date.now() - 2 * 60 * 60000).toISOString(),
@@ -256,6 +268,8 @@ export const arbitrageOpportunities: ArbitrageOpportunity[] = [
     eventId: '5',
     eventTitle: 'S&P 500 to reach 6000 by end of 2026?',
     profitPercent: 4.2,
+    spreadPercent: 3.3,
+    volume: 267_000,
     buyExchange: 'Kalshi',
     sellExchange: 'Augur',
     detectedTime: new Date(Date.now() - 90 * 60000).toISOString(),
@@ -263,6 +277,17 @@ export const arbitrageOpportunities: ArbitrageOpportunity[] = [
     estimatedProfit: '$225'
   },
 ];
+
+/** Rolling daily mock series for homepage analytics (14 periods) */
+export const homeSpreadTrend = Array.from({ length: 14 }, (_, i) => ({
+  label: `${i + 1}d`,
+  bps: Math.round(32 + Math.sin(i * 0.45) * 10 + i * 0.35),
+}));
+
+export const homeOpportunityTrend = Array.from({ length: 14 }, (_, i) => ({
+  label: `${i + 1}d`,
+  count: Math.max(1, Math.round(3 + Math.sin(i * 0.55) * 2.2 + i * 0.12)),
+}));
 
 export const alerts: Alert[] = [
   {
