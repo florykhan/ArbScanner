@@ -1,3 +1,20 @@
 @import './fonts.css';
 @import './tailwind.css';
 @import './theme.css';
+
+/* Match app chrome (slate-950) so overscroll / bounce doesn’t flash white */
+html {
+  color-scheme: dark;
+  background-color: #020617;
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: #020617;
+  min-height: 100%;
+}
+
+#root {
+  min-height: 100%;
+}
