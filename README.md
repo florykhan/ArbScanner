@@ -1,15 +1,16 @@
-# 🔍 ArbScanner — Compare Markets, Find Edges
+# ArbScanner
 
-**ArbScanner** is a **database-driven web application** for browsing **real-world events**, **comparing prediction markets across multiple exchanges**, **inspecting contract prices**, and **identifying arbitrage opportunities**. The system holds structured data—exchanges, events, markets, contracts, price snapshots, and alerts—so users can **explore and analyze** it in one place. **Day-to-day use** is **read-focused**; **admin** work (insert, update, delete) is handled **separately**.
+**ArbScanner** is a local-first prediction market arbitrage workstation for a single operator. It continuously scans supported exchanges, compares trusted mapped markets across venues, detects potential negative-risk spreads, and exposes system state through a terminal dashboard.
 
 ---
 
-## 🎯 Project Overview
+## Project Overview
 
 The goal of this project is to:
 
-- **Store** and organize market and event data so it is easy to compare and query.
-- **Highlight** price differences and potential arbitrage across venues.
-- **Deliver** a simple web UI for browsing and analysis, with **admin operations** kept apart from ordinary browsing.
+- store and organize exchange, event, market, contract, snapshot, and alert data
+- build a semantic mapping layer for identifying equivalent markets across exchanges
+- run a deterministic arbitrage engine on trusted mapped markets
+- deliver a terminal UI for monitoring scanner activity and active alerts
 
-More detail (stack, setup, deployment, and repo layout) will land here as the project grows.
+The primary planning document is [docs/final-documentation/arbscanner-product-plan.md](/Users/Rushik/Downloads/ArbScanner/docs/final-documentation/arbscanner-product-plan.md).
