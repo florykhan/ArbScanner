@@ -88,3 +88,5 @@ Run the database tests with:
 ```bash
 python3 -m unittest discover -s tests -p 'test_*.py'
 ```
+
+For the formal database design writeup covering the relational schema, functional dependencies, candidate keys, foreign keys, and 3NF justification, see `docs/database_design.md`.
