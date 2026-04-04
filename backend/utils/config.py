@@ -49,3 +49,50 @@ class DatabaseConfig:
             database=os.getenv("ARBSCANNER_DB_NAME", cls.database),
             unix_socket=os.getenv("ARBSCANNER_DB_SOCKET") or None,
         )
+
+
+@dataclass(frozen=True)
+class PolymarketConfig:
+    gamma_base_url: str = "https://gamma-api.polymarket.com"
+    clob_base_url: str = "https://clob.polymarket.com"
+    api_key: str | None = None
+    api_secret: str | None = None
+    api_passphrase: str | None = None
+    user_agent: str = "Mozilla/5.0 ArbScanner/0.1"
+
+    @classmethod
+    def from_env(cls) -> "PolymarketConfig":
+        return cls(
+            gamma_base_url=os.getenv("POLYMARKET_GAMMA_BASE_URL", cls.gamma_base_url),
+            clob_base_url=os.getenv("POLYMARKET_CLOB_BASE_URL", cls.clob_base_url),
+            api_key=os.getenv("POLYMARKET_API_KEY") or os.getenv("apiKey"),
+            api_secret=os.getenv("POLYMARKET_API_SECRET") or os.getenv("secret"),
+            api_passphrase=os.getenv("POLYMARKET_API_PASSPHRASE") or os.getenv("passphrase"),
+            user_agent=os.getenv("POLYMARKET_USER_AGENT", cls.user_agent),
+        )
+
+
+@dataclass(frozen=True)
+class ManifoldConfig:
+    api_base_url: str = "https://api.manifold.markets/v0"
+    user_agent: str = "Mozilla/5.0 ArbScanner/0.1"
+
+    @classmethod
+    def from_env(cls) -> "ManifoldConfig":
+        return cls(
+            api_base_url=os.getenv("MANIFOLD_API_BASE_URL", cls.api_base_url),
+            user_agent=os.getenv("MANIFOLD_USER_AGENT", cls.user_agent),
+        )
+
+
+@dataclass(frozen=True)
+class KalshiConfig:
+    api_base_url: str = "https://api.elections.kalshi.com/trade-api/v2"
+    user_agent: str = "Mozilla/5.0 ArbScanner/0.1"
+
+    @classmethod
+    def from_env(cls) -> "KalshiConfig":
+        return cls(
+            api_base_url=os.getenv("KALSHI_API_BASE_URL", cls.api_base_url),
+            user_agent=os.getenv("KALSHI_USER_AGENT", cls.user_agent),
+        )

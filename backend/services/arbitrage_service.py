@@ -55,12 +55,22 @@ def find_binary_negative_risk_opportunities(
         if not yes_quotes or not no_quotes:
             continue
 
-        best_yes = min(yes_quotes, key=lambda quote: quote.ask)
-        best_no = min(no_quotes, key=lambda quote: quote.ask)
-        total_cost = best_yes.ask + best_no.ask
+        best_pair: tuple[NormalizedQuote, NormalizedQuote] | None = None
+        best_total_cost: Decimal | None = None
 
-        if total_cost >= settlement_floor:
+        for yes_quote in yes_quotes:
+            for no_quote in no_quotes:
+                if yes_quote.exchange_name == no_quote.exchange_name:
+                    continue
+                total_cost = yes_quote.ask + no_quote.ask
+                if best_total_cost is None or total_cost < best_total_cost:
+                    best_pair = (yes_quote, no_quote)
+                    best_total_cost = total_cost
+
+        if best_pair is None or best_total_cost is None or best_total_cost >= settlement_floor:
             continue
+
+        best_yes, best_no = best_pair
 
         opportunities.append(
             DetectedOpportunity(
@@ -70,8 +80,8 @@ def find_binary_negative_risk_opportunities(
                 yes_ask=best_yes.ask,
                 no_exchange=best_no.exchange_name,
                 no_ask=best_no.ask,
-                total_cost=total_cost,
-                profit_margin=settlement_floor - total_cost,
+                total_cost=best_total_cost,
+                profit_margin=settlement_floor - best_total_cost,
                 detected_at=max(best_yes.snapshot_time, best_no.snapshot_time),
             )
         )

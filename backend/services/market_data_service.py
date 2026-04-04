@@ -43,15 +43,8 @@ class MarketDataService:
         LIMIT 1
     """
 
-    SNAPSHOT_EXISTS_QUERY = """
-        SELECT 1
-        FROM PriceSnapshot
-        WHERE Contract_id = %s AND Snapshot_time = %s
-        LIMIT 1
-    """
-
     INSERT_SNAPSHOT_QUERY = """
-        INSERT INTO PriceSnapshot (
+        INSERT IGNORE INTO PriceSnapshot (
             Contract_id,
             Snapshot_time,
             Bid,
@@ -118,13 +111,6 @@ class MarketDataService:
                 if quote.contract_id is None:
                     raise ValueError("quote.contract_id is required before persisting snapshots")
 
-                cursor.execute(
-                    self.SNAPSHOT_EXISTS_QUERY,
-                    (quote.contract_id, quote.snapshot_time),
-                )
-                if cursor.fetchone():
-                    continue
-
                 spread = quote.ask - quote.bid
                 cursor.execute(
                     self.INSERT_SNAPSHOT_QUERY,
@@ -137,7 +123,7 @@ class MarketDataService:
                         spread,
                     ),
                 )
-                inserted_count += 1
+                inserted_count += cursor.rowcount
 
             connection.commit()
             return inserted_count
