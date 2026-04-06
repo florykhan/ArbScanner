@@ -65,3 +65,5 @@ INSERT OR IGNORE INTO ArbitrageAlert (Alert_id, Mapping_id, Profit_margin, Detec
     (1, 1, 0.0700, '2026-04-02T16:00:30Z', 'Active'),
     (2, 2, 0.0400, '2026-04-02T16:05:30Z', 'Resolved'),
     (3, 3, 0.0500, '2026-04-02T16:10:30Z', 'Active');
+
+
