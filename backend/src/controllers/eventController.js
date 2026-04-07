@@ -2,11 +2,8 @@ import { createEvent, getEventById, listEvents } from "../services/eventService.
 
 const getEvents = (req, res, next) => {
   try {
-    const events = listEvents({
-      search: req.query.search,
-      category: req.query.category
-    });
-    return res.status(200).json({ data: events });
+    const rows = listEvents(req.validatedEventQuery || {});
+    return res.status(200).json({ data: rows });
   } catch (error) {
     return next(error);
   }
@@ -14,7 +11,7 @@ const getEvents = (req, res, next) => {
 
 const getEvent = (req, res, next) => {
   try {
-    const event = getEventById(req.params.id);
+    const event = getEventById(req.validatedParams.id);
     return res.status(200).json({ data: event });
   } catch (error) {
     return next(error);
@@ -23,7 +20,7 @@ const getEvent = (req, res, next) => {
 
 const postEvent = (req, res, next) => {
   try {
-    const event = createEvent(req.body);
+    const event = createEvent(req.validatedCreateEvent);
     return res.status(201).json({ data: event });
   } catch (error) {
     return next(error);

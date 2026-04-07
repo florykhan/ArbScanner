@@ -1,15 +1,9 @@
 import { events, markets } from "../db/mockData.js";
-
-const createNotFoundError = (message) => {
-  const error = new Error(message);
-  error.statusCode = 404;
-  error.name = "NotFoundError";
-  return error;
-};
+import { ApiError } from "../utils/apiError.js";
 
 const listEvents = (filters = {}) => {
-  // TODO (Phase 4): Replace in-memory filter logic with MySQL query predicates.
-  const { search, category } = filters;
+  // TODO (Phase 5): Replace in-memory filter logic with MySQL query predicates.
+  const { search, category, status } = filters;
 
   return events.filter((event) => {
     const matchesSearch =
@@ -20,15 +14,17 @@ const listEvents = (filters = {}) => {
     const matchesCategory =
       !category || event.category.toLowerCase() === category.toLowerCase();
 
-    return matchesSearch && matchesCategory;
+    const matchesStatus = !status || event.status === status;
+
+    return matchesSearch && matchesCategory && matchesStatus;
   });
 };
 
 const getEventById = (eventId) => {
-  // TODO (Phase 4): Fetch single event with joins from MySQL.
+  // TODO (Phase 5): Fetch single event with joins from MySQL.
   const event = events.find((item) => item.id === eventId);
   if (!event) {
-    throw createNotFoundError(`Event ${eventId} was not found`);
+    throw new ApiError(404, "Event not found");
   }
 
   const relatedMarkets = markets.filter((market) => market.eventId === event.id);
@@ -39,15 +35,17 @@ const getEventById = (eventId) => {
   };
 };
 
-const createEvent = (payload = {}) => {
-  // TODO (Phase 4): Validate request and insert row in MySQL.
+const createEvent = (payload) => {
+  // TODO (Phase 5): Validate request and insert row in MySQL.
+  const nextId = events.reduce((max, e) => Math.max(max, e.id), 0) + 1;
+
   return {
-    id: `evt_${Date.now()}`,
-    title: payload.title || "Untitled event",
-    category: payload.category || "General",
-    status: payload.status || "draft",
-    description: payload.description || "",
-    closeTime: payload.closeTime || null,
+    id: nextId,
+    title: payload.title,
+    category: payload.category,
+    status: payload.status,
+    description: payload.description,
+    closeTime: payload.closeTime,
     createdAt: new Date().toISOString(),
     source: "mock-layer",
     message: "Event accepted in mock mode. No persistent write has occurred."

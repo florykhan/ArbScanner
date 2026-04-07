@@ -1,5 +1,5 @@
-// TODO (Phase 4): Replace this module with MySQL repositories and adapters.
-// TODO (Phase 5): Join in external exchange feeds (e.g., Manifold) via ingestion jobs.
+// TODO (Phase 5): Replace this module with MySQL repositories and adapters.
+// TODO (Phase 6): Join in external exchange feeds (e.g., Manifold) via ingestion jobs.
 
 const exchanges = [
   {
@@ -18,9 +18,10 @@ const exchanges = [
   }
 ];
 
+/** Integer IDs align with route param validation (GET /api/events/:id, /api/contracts/:id/...). */
 const events = [
   {
-    id: "evt_us_election_2028",
+    id: 1,
     title: "US Presidential Election 2028 Winner",
     category: "Politics",
     status: "open",
@@ -29,7 +30,7 @@ const events = [
     createdAt: "2026-03-10T12:00:00.000Z"
   },
   {
-    id: "evt_btc_120k_2026",
+    id: 2,
     title: "Bitcoin hits $120k before 2027",
     category: "Crypto",
     status: "open",
@@ -38,7 +39,7 @@ const events = [
     createdAt: "2026-03-18T08:30:00.000Z"
   },
   {
-    id: "evt_champions_league_2026",
+    id: 3,
     title: "UEFA Champions League 2026 Winner",
     category: "Sports",
     status: "open",
@@ -50,32 +51,32 @@ const events = [
 
 const markets = [
   {
-    id: "mkt_manifold_election_1",
-    eventId: "evt_us_election_2028",
+    id: 11,
+    eventId: 1,
     exchangeId: "ex_manifold",
     question: "Will Candidate A win the 2028 US presidential election?",
     status: "open",
     liquidityScore: 0.82
   },
   {
-    id: "mkt_mock_election_1",
-    eventId: "evt_us_election_2028",
+    id: 12,
+    eventId: 1,
     exchangeId: "ex_mockexchange",
     question: "Candidate A to win 2028 US election?",
     status: "open",
     liquidityScore: 0.71
   },
   {
-    id: "mkt_manifold_btc_1",
-    eventId: "evt_btc_120k_2026",
+    id: 13,
+    eventId: 2,
     exchangeId: "ex_manifold",
     question: "Will Bitcoin reach $120,000 before Jan 1, 2027?",
     status: "open",
     liquidityScore: 0.88
   },
   {
-    id: "mkt_mock_btc_1",
-    eventId: "evt_btc_120k_2026",
+    id: 14,
+    eventId: 2,
     exchangeId: "ex_mockexchange",
     question: "BTC >= $120k before 2027?",
     status: "open",
@@ -85,23 +86,23 @@ const markets = [
 
 const contracts = [
   {
-    id: "ctr_manifold_election_yes",
-    marketId: "mkt_manifold_election_1",
+    id: 1,
+    marketId: 11,
     outcome: "YES"
   },
   {
-    id: "ctr_mock_election_yes",
-    marketId: "mkt_mock_election_1",
+    id: 2,
+    marketId: 12,
     outcome: "YES"
   },
   {
-    id: "ctr_manifold_btc_yes",
-    marketId: "mkt_manifold_btc_1",
+    id: 3,
+    marketId: 13,
     outcome: "YES"
   },
   {
-    id: "ctr_mock_btc_yes",
-    marketId: "mkt_mock_btc_1",
+    id: 4,
+    marketId: 14,
     outcome: "YES"
   }
 ];
@@ -109,28 +110,28 @@ const contracts = [
 const priceSnapshots = [
   {
     id: "snap_001",
-    contractId: "ctr_manifold_election_yes",
+    contractId: 1,
     yesPrice: 0.57,
     noPrice: 0.43,
     timestamp: "2026-04-06T18:10:00.000Z"
   },
   {
     id: "snap_002",
-    contractId: "ctr_mock_election_yes",
+    contractId: 2,
     yesPrice: 0.52,
     noPrice: 0.48,
     timestamp: "2026-04-06T18:10:05.000Z"
   },
   {
     id: "snap_003",
-    contractId: "ctr_manifold_btc_yes",
+    contractId: 3,
     yesPrice: 0.44,
     noPrice: 0.56,
     timestamp: "2026-04-06T18:15:00.000Z"
   },
   {
     id: "snap_004",
-    contractId: "ctr_mock_btc_yes",
+    contractId: 4,
     yesPrice: 0.49,
     noPrice: 0.51,
     timestamp: "2026-04-06T18:15:03.000Z"
@@ -140,9 +141,9 @@ const priceSnapshots = [
 const arbitrageAlerts = [
   {
     id: "alt_001",
-    eventId: "evt_us_election_2028",
-    marketId: "mkt_mock_election_1",
-    contractId: "ctr_mock_election_yes",
+    eventId: 1,
+    marketId: 12,
+    contractId: 2,
     buyExchange: "MockExchange",
     sellExchange: "Manifold",
     spreadPercent: 5.0,
@@ -153,9 +154,9 @@ const arbitrageAlerts = [
   },
   {
     id: "alt_002",
-    eventId: "evt_btc_120k_2026",
-    marketId: "mkt_manifold_btc_1",
-    contractId: "ctr_manifold_btc_yes",
+    eventId: 2,
+    marketId: 13,
+    contractId: 3,
     buyExchange: "Manifold",
     sellExchange: "MockExchange",
     spreadPercent: 3.2,
@@ -166,9 +167,9 @@ const arbitrageAlerts = [
   },
   {
     id: "alt_003",
-    eventId: "evt_champions_league_2026",
-    marketId: "mkt_manifold_election_1",
-    contractId: "ctr_manifold_election_yes",
+    eventId: 3,
+    marketId: 11,
+    contractId: 1,
     buyExchange: "Manifold",
     sellExchange: "MockExchange",
     spreadPercent: 1.4,

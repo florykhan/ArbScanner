@@ -5,7 +5,7 @@ import {
 
 const getContractSnapshots = (req, res, next) => {
   try {
-    const data = listContractSnapshots(req.params.id);
+    const data = listContractSnapshots(req.validatedParams.id);
     return res.status(200).json(data);
   } catch (error) {
     return next(error);
@@ -14,7 +14,7 @@ const getContractSnapshots = (req, res, next) => {
 
 const postPriceSnapshot = (req, res, next) => {
   try {
-    const snapshot = createPriceSnapshot(req.body);
+    const snapshot = createPriceSnapshot(req.validatedPriceSnapshot);
     return res.status(201).json({ data: snapshot });
   } catch (error) {
     return next(error);

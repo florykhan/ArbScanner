@@ -7,8 +7,8 @@ import {
 } from "../db/mockData.js";
 
 const getDashboardSummary = () => {
-  // TODO (Phase 4): Replace with aggregate SQL queries and cached read models.
-  // TODO (Phase 5): Blend external Manifold feed health and freshness metrics.
+  // TODO (Phase 5): Replace with aggregate SQL queries and cached read models.
+  // TODO (Phase 6): Blend external Manifold feed health and freshness metrics.
   const activeAlerts = arbitrageAlerts.filter((alert) => alert.status === "active");
   const topArbitrageOpportunities = [...activeAlerts]
     .sort((a, b) => b.spreadPercent - a.spreadPercent)

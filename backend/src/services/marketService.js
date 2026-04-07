@@ -1,7 +1,7 @@
 import { contracts, exchanges, markets } from "../db/mockData.js";
 
 const listMarkets = () => {
-  // TODO (Phase 4): Replace with MySQL joins between markets/exchanges/contracts.
+  // TODO (Phase 5): Replace with MySQL joins between markets/exchanges/contracts.
   return markets.map((market) => {
     const exchange = exchanges.find((item) => item.id === market.exchangeId);
     const contractCount = contracts.filter(
