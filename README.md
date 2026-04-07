@@ -23,6 +23,7 @@ This branch includes the database-side deliverables for ArbScanner.
 - `database/queries/queries.sql`: useful SQL queries for the core read scenarios
 - `docs/database_design.md`: relational schema, functional dependencies, keys, foreign keys, and 3NF/BCNF design writeup
 
+<<<<<<< HEAD
 The SQL implementation uses SQLite-compatible DDL while staying faithful to the formal relational design.
 
 ---
@@ -64,3 +65,6 @@ The UI is served at **http://localhost:5173** (Vite default). In development, AP
 
 - Backend health: open or `curl` **http://localhost:4000/api/health**
 - With both servers running, use the app in the browser at **http://localhost:5173** (dashboard, events, markets, alerts, snapshots pages call the backend).
+=======
+The SQL implementation uses MySQL-compatible DDL with InnoDB tables while staying faithful to the formal relational design.
+>>>>>>> origin/sqlimplement
