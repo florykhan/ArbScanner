@@ -1,8 +1,11 @@
 import { createEvent, getEventById, listEvents } from "../services/eventService.js";
 
-const getEvents = (_req, res, next) => {
+const getEvents = (req, res, next) => {
   try {
-    const events = listEvents();
+    const events = listEvents({
+      search: req.query.search,
+      category: req.query.category
+    });
     return res.status(200).json({ data: events });
   } catch (error) {
     return next(error);

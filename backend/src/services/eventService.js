@@ -1,45 +1,56 @@
-const listEvents = () => {
-  // TODO (Phase 3): Fetch from MySQL events table with pagination and filtering.
-  return [
-    {
-      id: "evt_us_election_2028",
-      title: "US Presidential Election 2028",
-      category: "Politics",
-      status: "open",
-      startDate: "2028-01-01T00:00:00.000Z",
-      endDate: "2028-11-08T00:00:00.000Z"
-    },
-    {
-      id: "evt_btc_100k_2026",
-      title: "Bitcoin reaches $100k by end of 2026",
-      category: "Crypto",
-      status: "open",
-      startDate: "2026-01-01T00:00:00.000Z",
-      endDate: "2026-12-31T23:59:59.000Z"
-    }
-  ];
+import { events, markets } from "../db/mockData.js";
+
+const createNotFoundError = (message) => {
+  const error = new Error(message);
+  error.statusCode = 404;
+  error.name = "NotFoundError";
+  return error;
+};
+
+const listEvents = (filters = {}) => {
+  // TODO (Phase 4): Replace in-memory filter logic with MySQL query predicates.
+  const { search, category } = filters;
+
+  return events.filter((event) => {
+    const matchesSearch =
+      !search ||
+      event.title.toLowerCase().includes(search.toLowerCase()) ||
+      event.description.toLowerCase().includes(search.toLowerCase());
+
+    const matchesCategory =
+      !category || event.category.toLowerCase() === category.toLowerCase();
+
+    return matchesSearch && matchesCategory;
+  });
 };
 
 const getEventById = (eventId) => {
-  // TODO (Phase 3): Load event + linked markets/contracts from MySQL.
+  // TODO (Phase 4): Fetch single event with joins from MySQL.
+  const event = events.find((item) => item.id === eventId);
+  if (!event) {
+    throw createNotFoundError(`Event ${eventId} was not found`);
+  }
+
+  const relatedMarkets = markets.filter((market) => market.eventId === event.id);
+
   return {
-    id: eventId,
-    title: "Placeholder event",
-    category: "General",
-    status: "open",
-    description: "Detailed event payload will be populated from MySQL in a later phase.",
-    relatedMarketCount: 2
+    ...event,
+    relatedMarketCount: relatedMarkets.length
   };
 };
 
-const createEvent = (payload) => {
-  // TODO (Phase 3): Validate payload and persist event in MySQL.
+const createEvent = (payload = {}) => {
+  // TODO (Phase 4): Validate request and insert row in MySQL.
   return {
-    id: "evt_placeholder_new",
-    ...payload,
-    status: payload?.status || "draft",
+    id: `evt_${Date.now()}`,
+    title: payload.title || "Untitled event",
+    category: payload.category || "General",
+    status: payload.status || "draft",
+    description: payload.description || "",
+    closeTime: payload.closeTime || null,
     createdAt: new Date().toISOString(),
-    message: "Event accepted (stub). No database write has occurred yet."
+    source: "mock-layer",
+    message: "Event accepted in mock mode. No persistent write has occurred."
   };
 };
 
