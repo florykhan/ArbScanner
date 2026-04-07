@@ -1,19 +1,40 @@
 import app from "./app.js";
 import env from "./config/env.js";
+import { closePool, verifyConnection } from "./db/mysql.js";
 
-const server = app.listen(env.port, () => {
-  // Keep startup logging lightweight and readable during development.
-  // This can be replaced with a structured logger in later phases.
-  console.log(`ArbScanner backend running on port ${env.port} (${env.nodeEnv})`);
-});
+const start = async () => {
+  if (!env.useMockData) {
+    try {
+      await verifyConnection();
+      console.log("MySQL: connection check passed");
+    } catch (error) {
+      console.error("MySQL: connection check failed — set USE_MOCK_DATA=true for mock mode or fix DB_*");
+      console.error(error);
+      process.exit(1);
+    }
+  } else {
+    console.log("Data source: mock (USE_MOCK_DATA=true)");
+  }
 
-const gracefulShutdown = (signal) => {
-  console.log(`${signal} received. Shutting down server...`);
-  server.close(() => {
-    console.log("Server closed.");
-    process.exit(0);
+  const server = app.listen(env.port, () => {
+    console.log(`ArbScanner backend running on port ${env.port} (${env.nodeEnv})`);
+  });
+
+  const gracefulShutdown = async (signal) => {
+    console.log(`${signal} received. Shutting down server...`);
+    await closePool();
+    server.close(() => {
+      console.log("Server closed.");
+      process.exit(0);
+    });
+  };
+
+  process.on("SIGINT", () => {
+    gracefulShutdown("SIGINT");
+  });
+  process.on("SIGTERM", () => {
+    gracefulShutdown("SIGTERM");
   });
 };
 
-process.on("SIGINT", () => gracefulShutdown("SIGINT"));
-process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+start();

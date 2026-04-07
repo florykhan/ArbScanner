@@ -1,8 +1,8 @@
 import { getDashboardSummary } from "../services/dashboardService.js";
 
-const getSummary = (_req, res, next) => {
+const getSummary = async (_req, res, next) => {
   try {
-    const summary = getDashboardSummary();
+    const summary = await getDashboardSummary();
     return res.status(200).json(summary);
   } catch (error) {
     return next(error);

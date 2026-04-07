@@ -3,18 +3,18 @@ import {
   listContractSnapshots
 } from "../services/snapshotService.js";
 
-const getContractSnapshots = (req, res, next) => {
+const getContractSnapshots = async (req, res, next) => {
   try {
-    const data = listContractSnapshots(req.validatedParams.id);
+    const data = await listContractSnapshots(req.validatedParams.id);
     return res.status(200).json(data);
   } catch (error) {
     return next(error);
   }
 };
 
-const postPriceSnapshot = (req, res, next) => {
+const postPriceSnapshot = async (req, res, next) => {
   try {
-    const snapshot = createPriceSnapshot(req.validatedPriceSnapshot);
+    const snapshot = await createPriceSnapshot(req.validatedPriceSnapshot);
     return res.status(201).json({ data: snapshot });
   } catch (error) {
     return next(error);

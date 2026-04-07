@@ -1,39 +1,16 @@
-import {
-  arbitrageAlerts,
-  events,
-  exchanges,
-  markets,
-  priceSnapshots
-} from "../db/mockData.js";
+import env from "../config/env.js";
+import * as mock from "./implementations/dashboardService.mock.js";
+import * as mysql from "./implementations/dashboardService.mysql.js";
 
-const getDashboardSummary = () => {
-  // TODO (Phase 5): Replace with aggregate SQL queries and cached read models.
-  // TODO (Phase 6): Blend external Manifold feed health and freshness metrics.
-  const activeAlerts = arbitrageAlerts.filter((alert) => alert.status === "active");
-  const topArbitrageOpportunities = [...activeAlerts]
-    .sort((a, b) => b.spreadPercent - a.spreadPercent)
-    .slice(0, 3)
-    .map((alert) => ({
-      alertId: alert.id,
-      eventId: alert.eventId,
-      buyExchange: alert.buyExchange,
-      sellExchange: alert.sellExchange,
-      spreadPercent: alert.spreadPercent,
-      severity: alert.severity
-    }));
-
-  return {
-    totals: {
-      exchanges: exchanges.length,
-      events: events.length,
-      markets: markets.length,
-      activeAlerts: activeAlerts.length,
-      snapshots: priceSnapshots.length
-    },
-    topArbitrageOpportunities,
-    lastSnapshotAt: priceSnapshots[priceSnapshots.length - 1]?.timestamp || null,
-    generatedAt: new Date().toISOString()
-  };
+/**
+ * Facade: switches between mock data and MySQL implementations via USE_MOCK_DATA.
+ * To use MySQL later: set USE_MOCK_DATA=false and fill in services/implementations/*.mysql.js.
+ */
+const getDashboardSummary = async () => {
+  if (env.useMockData) {
+    return mock.getDashboardSummary();
+  }
+  return mysql.getDashboardSummary();
 };
 
 export { getDashboardSummary };

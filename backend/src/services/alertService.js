@@ -1,15 +1,12 @@
-import { arbitrageAlerts } from "../db/mockData.js";
+import env from "../config/env.js";
+import * as mock from "./implementations/alertService.mock.js";
+import * as mysql from "./implementations/alertService.mysql.js";
 
-const listAlerts = (filters = {}) => {
-  // TODO (Phase 5): Replace with MySQL-backed alert queries and paging.
-  const { severity } = filters;
-
-  return arbitrageAlerts.filter((alert) => {
-    if (!severity) {
-      return true;
-    }
-    return alert.severity.toLowerCase() === severity.toLowerCase();
-  });
+const listAlerts = async (filters = {}) => {
+  if (env.useMockData) {
+    return mock.listAlerts(filters);
+  }
+  return mysql.listAlerts(filters);
 };
 
 export { listAlerts };

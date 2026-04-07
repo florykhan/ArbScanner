@@ -1,55 +1,26 @@
-import { events, markets } from "../db/mockData.js";
-import { ApiError } from "../utils/apiError.js";
+import env from "../config/env.js";
+import * as mock from "./implementations/eventService.mock.js";
+import * as mysql from "./implementations/eventService.mysql.js";
 
-const listEvents = (filters = {}) => {
-  // TODO (Phase 5): Replace in-memory filter logic with MySQL query predicates.
-  const { search, category, status } = filters;
-
-  return events.filter((event) => {
-    const matchesSearch =
-      !search ||
-      event.title.toLowerCase().includes(search.toLowerCase()) ||
-      event.description.toLowerCase().includes(search.toLowerCase());
-
-    const matchesCategory =
-      !category || event.category.toLowerCase() === category.toLowerCase();
-
-    const matchesStatus = !status || event.status === status;
-
-    return matchesSearch && matchesCategory && matchesStatus;
-  });
-};
-
-const getEventById = (eventId) => {
-  // TODO (Phase 5): Fetch single event with joins from MySQL.
-  const event = events.find((item) => item.id === eventId);
-  if (!event) {
-    throw new ApiError(404, "Event not found");
+const listEvents = async (filters = {}) => {
+  if (env.useMockData) {
+    return mock.listEvents(filters);
   }
-
-  const relatedMarkets = markets.filter((market) => market.eventId === event.id);
-
-  return {
-    ...event,
-    relatedMarketCount: relatedMarkets.length
-  };
+  return mysql.listEvents(filters);
 };
 
-const createEvent = (payload) => {
-  // TODO (Phase 5): Validate request and insert row in MySQL.
-  const nextId = events.reduce((max, e) => Math.max(max, e.id), 0) + 1;
+const getEventById = async (eventId) => {
+  if (env.useMockData) {
+    return mock.getEventById(eventId);
+  }
+  return mysql.getEventById(eventId);
+};
 
-  return {
-    id: nextId,
-    title: payload.title,
-    category: payload.category,
-    status: payload.status,
-    description: payload.description,
-    closeTime: payload.closeTime,
-    createdAt: new Date().toISOString(),
-    source: "mock-layer",
-    message: "Event accepted in mock mode. No persistent write has occurred."
-  };
+const createEvent = async (payload) => {
+  if (env.useMockData) {
+    return mock.createEvent(payload);
+  }
+  return mysql.createEvent(payload);
 };
 
 export { createEvent, getEventById, listEvents };

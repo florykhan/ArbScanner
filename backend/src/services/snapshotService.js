@@ -1,49 +1,19 @@
-import { contracts, markets, priceSnapshots } from "../db/mockData.js";
-import { ApiError } from "../utils/apiError.js";
+import env from "../config/env.js";
+import * as mock from "./implementations/snapshotService.mock.js";
+import * as mysql from "./implementations/snapshotService.mysql.js";
 
-const listContractSnapshots = (contractId) => {
-  // TODO (Phase 5): Replace with MySQL query on snapshots table.
-  const contract = contracts.find((item) => item.id === contractId);
-  if (!contract) {
-    throw new ApiError(404, "Contract not found");
+const listContractSnapshots = async (contractId) => {
+  if (env.useMockData) {
+    return mock.listContractSnapshots(contractId);
   }
-
-  const market = markets.find((item) => item.id === contract.marketId);
-  const snapshots = priceSnapshots
-    .filter((snapshot) => snapshot.contractId === contractId)
-    .map((snapshot) => ({
-      snapshotId: snapshot.id,
-      contractId: snapshot.contractId,
-      yesPrice: snapshot.yesPrice,
-      noPrice: snapshot.noPrice,
-      timestamp: snapshot.timestamp
-    }));
-
-  return {
-    contractId,
-    marketId: contract.marketId,
-    eventId: market?.eventId || null,
-    outcome: contract.outcome,
-    snapshots
-  };
+  return mysql.listContractSnapshots(contractId);
 };
 
-const createPriceSnapshot = (payload) => {
-  // TODO (Phase 5): Validate and insert in MySQL; stream from Manifold adapter.
-  const contract = contracts.find((item) => item.id === payload.contractId);
-  if (!contract) {
-    throw new ApiError(404, "Contract not found");
+const createPriceSnapshot = async (payload) => {
+  if (env.useMockData) {
+    return mock.createPriceSnapshot(payload);
   }
-
-  return {
-    snapshotId: `snap_${Date.now()}`,
-    contractId: payload.contractId,
-    yesPrice: payload.yesPrice,
-    noPrice: payload.noPrice,
-    timestamp: payload.timestamp,
-    source: payload.source,
-    message: "Snapshot accepted in mock mode. No persistent write has occurred."
-  };
+  return mysql.createPriceSnapshot(payload);
 };
 
 export { createPriceSnapshot, listContractSnapshots };

@@ -1,24 +1,12 @@
-import { contracts, exchanges, markets } from "../db/mockData.js";
+import env from "../config/env.js";
+import * as mock from "./implementations/marketService.mock.js";
+import * as mysql from "./implementations/marketService.mysql.js";
 
-const listMarkets = () => {
-  // TODO (Phase 5): Replace with MySQL joins between markets/exchanges/contracts.
-  return markets.map((market) => {
-    const exchange = exchanges.find((item) => item.id === market.exchangeId);
-    const contractCount = contracts.filter(
-      (contract) => contract.marketId === market.id
-    ).length;
-
-    return {
-      ...market,
-      exchange: exchange
-        ? {
-            id: exchange.id,
-            name: exchange.name
-          }
-        : null,
-      contractCount
-    };
-  });
+const listMarkets = async () => {
+  if (env.useMockData) {
+    return mock.listMarkets();
+  }
+  return mysql.listMarkets();
 };
 
 export { listMarkets };
