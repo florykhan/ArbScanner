@@ -23,4 +23,4 @@ This branch includes the database-side deliverables for ArbScanner.
 - `database/queries/queries.sql`: useful SQL queries for the core read scenarios
 - `docs/database_design.md`: relational schema, functional dependencies, keys, foreign keys, and 3NF/BCNF design writeup
 
-The SQL implementation uses SQLite-compatible DDL while staying faithful to the formal relational design.
+The SQL implementation uses MySQL-compatible DDL with InnoDB tables while staying faithful to the formal relational design.

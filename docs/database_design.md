@@ -1,6 +1,6 @@
 # ArbScanner Database Design
 
-This document describes the database design used for the ArbScanner backend. It is consistent with the implemented schema in [database/schema/schema.sql](/Users/arina/areenve.github.io/ArbScanner/database/schema/schema.sql) and follows the logical design required for the database portion of the project: relational schema, functional dependencies, candidate keys, foreign keys, and normalization to Third Normal Form (3NF).
+This document describes the database design used for the ArbScanner backend. It is consistent with the implemented schema in [database/schema/schema.sql](/Users/arina/areenve.github.io/ArbScanner/database/schema/schema.sql) and follows the logical design required for the database portion of the project: relational schema, functional dependencies, candidate keys, foreign keys, and normalization to Third Normal Form (3NF). The implementation target for the retained SQL artifacts is MySQL using InnoDB tables.
 
 ## 1. Relational Schema
 
