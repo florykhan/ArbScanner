@@ -96,3 +96,42 @@ class KalshiConfig:
             api_base_url=os.getenv("KALSHI_API_BASE_URL", cls.api_base_url),
             user_agent=os.getenv("KALSHI_USER_AGENT", cls.user_agent),
         )
+
+
+@dataclass(frozen=True)
+class GeminiConfig:
+    api_key: str | None = None
+    model: str = "gemini-2.5-flash-lite"
+    api_base_url: str = "https://generativelanguage.googleapis.com/v1beta"
+    user_agent: str = "Mozilla/5.0 ArbScanner/0.1"
+    max_workers: int = 8
+    max_candidate_pairs: int = 300
+    batch_size: int = 25
+    request_timeout_seconds: int = 60
+    enabled: bool = True
+
+    @classmethod
+    def from_env(cls) -> "GeminiConfig":
+        return cls(
+            api_key=(
+                os.getenv("GEMINI_API_KEY")
+                or os.getenv("GOOGLE_API_KEY")
+                or os.getenv("GOOGLE_GENAI_API_KEY")
+                or os.getenv("GOOGLE_GENERATIVE_AI_API_KEY")
+            ),
+            model=os.getenv("GEMINI_MODEL", cls.model),
+            api_base_url=os.getenv("GEMINI_API_BASE_URL", cls.api_base_url),
+            user_agent=os.getenv("GEMINI_USER_AGENT", cls.user_agent),
+            max_workers=int(os.getenv("GEMINI_MAX_WORKERS", str(cls.max_workers))),
+            max_candidate_pairs=int(
+                os.getenv("GEMINI_MAX_CANDIDATE_PAIRS", str(cls.max_candidate_pairs))
+            ),
+            batch_size=int(os.getenv("GEMINI_BATCH_SIZE", str(cls.batch_size))),
+            request_timeout_seconds=int(
+                os.getenv(
+                    "GEMINI_REQUEST_TIMEOUT_SECONDS",
+                    str(cls.request_timeout_seconds),
+                )
+            ),
+            enabled=os.getenv("GEMINI_ENABLED", "true").lower() in {"1", "true", "yes", "on"},
+        )

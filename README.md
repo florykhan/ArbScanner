@@ -34,5 +34,10 @@ It does two things:
 - optionally applies regex alias rules from
   [title_alias_rules.json](/Users/Rushik/Downloads/ArbScanner/backend/config/title_alias_rules.json)
 
+The live sync now also supports Gemini-based matching in
+[gemini_mapper_service.py](/Users/Rushik/Downloads/ArbScanner/backend/services/gemini_mapper_service.py).
+It runs after the regex mapper, checks likely cross-exchange title pairs in parallel, and caches decisions in
+[gemini_match_cache.json](/Users/Rushik/Downloads/ArbScanner/backend/config/gemini_match_cache.json).
+
 Use [title_alias_rules.example.json](/Users/Rushik/Downloads/ArbScanner/backend/config/title_alias_rules.example.json)
 as the template when you want to force known Polymarket and Manifold titles into the same event for MVP demos.

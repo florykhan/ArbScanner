@@ -4,6 +4,7 @@ import argparse
 import logging
 
 from backend.models.market_payload import NormalizedQuote
+from backend.services.gemini_mapper_service import GeminiMapperService
 from backend.services.kalshi_service import KalshiService
 from backend.services.manifold_service import ManifoldService
 from backend.services.market_data_service import MarketDataService
@@ -84,8 +85,11 @@ def main() -> None:
     market_data_service = MarketDataService()
     scanner_service = ScannerService()
     title_mapper_service = TitleMapperService()
+    gemini_mapper_service = GeminiMapperService()
 
-    mapped_quotes, mapped_groups = title_mapper_service.remap_quotes(all_quotes)
+    regex_mapped_quotes, regex_mapped_groups = title_mapper_service.remap_quotes(all_quotes)
+    mapped_quotes, ai_mapped_groups = gemini_mapper_service.remap_quotes(regex_mapped_quotes)
+    mapped_groups = regex_mapped_groups + ai_mapped_groups
 
     with db_session() as connection:
         _register_exchange_quotes(
@@ -113,7 +117,13 @@ def main() -> None:
     logging.info("Fetched %s Polymarket quote(s)", len(polymarket_quotes))
     logging.info("Fetched %s Manifold quote(s)", len(manifold_quotes))
     logging.info("Fetched %s Kalshi quote(s)", len(kalshi_quotes))
-    logging.info("Mapped %s cross-exchange title group(s)", len(mapped_groups))
+    logging.info("Regex mapped %s cross-exchange title group(s)", len(regex_mapped_groups))
+    logging.info(
+        "Gemini mapped %s cross-exchange title group(s)%s",
+        len(ai_mapped_groups),
+        "" if gemini_mapper_service.is_enabled else " (disabled)",
+    )
+    logging.info("Mapped %s cross-exchange title group(s) total", len(mapped_groups))
     for group in mapped_groups[:5]:
         logging.info(
             "Mapped title group | %s | %s",
