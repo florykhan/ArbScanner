@@ -1,33 +1,57 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router";
-import { Filter, Eye, Archive, ExternalLink } from "lucide-react";
+import { Filter, Eye, Archive } from "lucide-react";
 import { Card, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Badge } from "../../components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
-import ArbitrageFlow from "../../components/ArbitrageFlow";
-import { alerts } from "../../data/mockData";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../components/ui/select";
+import { toast } from "sonner";
+import type { ApiAlertRow } from "../../api/types";
+import { expireAlert, getAlerts } from "../../api/client";
+
+type StatusFilter = "all" | "Active" | "Expired";
 
 export default function Alerts() {
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("Active");
   const [sortBy, setSortBy] = useState<"profit" | "time">("profit");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
-  const [localAlerts, setLocalAlerts] = useState(alerts);
+  const [rows, setRows] = useState<ApiAlertRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredAlerts = localAlerts.filter(alert => {
-    return statusFilter === "all" || alert.status === statusFilter;
-  });
-
-  const sortedAlerts = [...filteredAlerts].sort((a, b) => {
-    if (sortBy === "profit") {
-      return sortOrder === "desc" 
-        ? b.profitPercent - a.profitPercent 
-        : a.profitPercent - b.profitPercent;
-    } else {
-      const timeA = new Date(a.detectedTime).getTime();
-      const timeB = new Date(b.detectedTime).getTime();
-      return sortOrder === "desc" ? timeB - timeA : timeA - timeB;
+  const load = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const q = statusFilter === "all" ? null : statusFilter;
+      const data = await getAlerts(q);
+      setRows(data);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load alerts");
+    } finally {
+      setLoading(false);
     }
+  }, [statusFilter]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const sortedAlerts = [...rows].sort((a, b) => {
+    if (sortBy === "profit") {
+      return sortOrder === "desc"
+        ? b.profit_percent - a.profit_percent
+        : a.profit_percent - b.profit_percent;
+    }
+    const timeA = new Date(a.detected_at ?? 0).getTime();
+    const timeB = new Date(b.detected_at ?? 0).getTime();
+    return sortOrder === "desc" ? timeB - timeA : timeA - timeB;
   });
 
   const handleSort = (field: "profit" | "time") => {
@@ -39,113 +63,98 @@ export default function Alerts() {
     }
   };
 
-  const updateStatus = (alertId: string, newStatus: "new" | "viewed" | "archived") => {
-    setLocalAlerts(prevAlerts =>
-      prevAlerts.map(alert =>
-        alert.id === alertId ? { ...alert, status: newStatus } : alert
-      )
-    );
+  const archive = async (alertId: number) => {
+    try {
+      await expireAlert(alertId);
+      toast.success("Alert marked Expired");
+      await load();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Request failed");
+    }
   };
 
-  const formatTimeAgo = (dateString: string) => {
-    const minutes = Math.floor((Date.now() - new Date(dateString).getTime()) / 60000);
+  const formatTimeAgo = (iso: string | null) => {
+    if (!iso) return "—";
+    const minutes = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
     if (minutes < 60) return `${minutes}m ago`;
     const hours = Math.floor(minutes / 60);
     if (hours < 24) return `${hours}h ago`;
     return `${Math.floor(hours / 24)}d ago`;
   };
 
-  const getStatusBadge = (status: string) => {
-    const styles: Record<string, string> = {
-      new: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-      viewed: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-      archived: 'bg-slate-500/20 text-slate-400 border-slate-500/30',
-    };
-    return styles[status] || styles.new;
-  };
-
-  const statusCounts = {
-    all: localAlerts.length,
-    new: localAlerts.filter(a => a.status === 'new').length,
-    viewed: localAlerts.filter(a => a.status === 'viewed').length,
-    archived: localAlerts.filter(a => a.status === 'archived').length,
+  const statusBadge = (status: string) => {
+    const s = status.toLowerCase();
+    if (s === "active")
+      return "border-emerald-500/30 bg-emerald-500/20 text-emerald-400";
+    if (s === "expired")
+      return "border-slate-500/30 bg-slate-500/20 text-slate-400";
+    return "border-slate-600 bg-slate-800 text-slate-300";
   };
 
   return (
     <div className="min-h-screen bg-slate-950">
-      {/* Header */}
       <div className="border-b border-slate-800 bg-slate-900/50 backdrop-blur-sm">
         <div className="px-8 py-6">
-          <div className="flex items-center justify-between mb-6">
+          <div className="mb-6 flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-semibold text-white mb-1">Arbitrage Alerts</h1>
-              <p className="text-sm text-slate-400">Monitor and manage opportunities</p>
+              <h1 className="mb-1 text-2xl font-semibold text-white">Arbitrage alerts</h1>
+              <p className="text-sm text-slate-400">
+                Rows from <code className="text-slate-500">ArbitrageAlert</code> (backend truth)
+              </p>
             </div>
             <div className="text-right">
-              <div className="text-xs text-slate-500 mb-1">Total Alerts</div>
-              <div className="text-2xl font-semibold text-white">{statusCounts.all}</div>
+              <div className="mb-1 text-xs text-slate-500">Shown</div>
+              <div className="text-2xl font-semibold text-white">
+                {loading ? "—" : sortedAlerts.length}
+              </div>
             </div>
           </div>
 
-          {/* Status Pills */}
-          <div className="flex flex-wrap items-center gap-3 mb-6">
-            <button
-              onClick={() => setStatusFilter("all")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                statusFilter === "all"
-                  ? "bg-slate-800 text-white"
-                  : "text-slate-400 hover:text-white hover:bg-slate-800/50"
-              }`}
-            >
-              All ({statusCounts.all})
-            </button>
-            <button
-              onClick={() => setStatusFilter("new")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                statusFilter === "new"
-                  ? "bg-emerald-600 text-white"
-                  : "text-slate-400 hover:text-white hover:bg-slate-800/50"
-              }`}
-            >
-              New ({statusCounts.new})
-            </button>
-            <button
-              onClick={() => setStatusFilter("viewed")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                statusFilter === "viewed"
-                  ? "bg-blue-600 text-white"
-                  : "text-slate-400 hover:text-white hover:bg-slate-800/50"
-              }`}
-            >
-              Viewed ({statusCounts.viewed})
-            </button>
-            <button
-              onClick={() => setStatusFilter("archived")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                statusFilter === "archived"
-                  ? "bg-slate-700 text-white"
-                  : "text-slate-400 hover:text-white hover:bg-slate-800/50"
-              }`}
-            >
-              Archived ({statusCounts.archived})
-            </button>
+          {error && <p className="mb-4 text-sm text-red-400">{error}</p>}
+
+          <div className="mb-6 flex flex-wrap items-center gap-3">
+            {(["all", "Active", "Expired"] as const).map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setStatusFilter(s)}
+                className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
+                  statusFilter === s
+                    ? s === "Active"
+                      ? "bg-emerald-600 text-white"
+                      : s === "Expired"
+                        ? "bg-slate-700 text-white"
+                        : "bg-slate-800 text-white"
+                    : "text-slate-400 hover:bg-slate-800/50 hover:text-white"
+                }`}
+              >
+                {s === "all" ? "All statuses" : s}
+              </button>
+            ))}
           </div>
 
-          {/* Sort Options */}
           <div className="flex items-center gap-4">
             <Filter className="h-4 w-4 text-slate-500" />
-            <Select value={sortBy} onValueChange={(value: "profit" | "time") => setSortBy(value)}>
-              <SelectTrigger className="w-48 bg-slate-900 border-slate-700 text-white">
+            <Select
+              value={sortBy}
+              onValueChange={(value: "profit" | "time") => setSortBy(value)}
+            >
+              <SelectTrigger className="w-48 border-slate-700 bg-slate-900 text-white">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-slate-900 border-slate-700">
-                <SelectItem value="profit" className="text-white">Sort by Profit</SelectItem>
-                <SelectItem value="time" className="text-white">Sort by Time</SelectItem>
+              <SelectContent className="border-slate-700 bg-slate-900">
+                <SelectItem value="profit" className="text-white">
+                  Sort by profit
+                </SelectItem>
+                <SelectItem value="time" className="text-white">
+                  Sort by time
+                </SelectItem>
               </SelectContent>
             </Select>
             <Button
               variant="ghost"
               size="sm"
+              type="button"
               onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
               className="text-slate-400 hover:text-white"
             >
@@ -155,74 +164,82 @@ export default function Alerts() {
         </div>
       </div>
 
-      {/* Alerts List */}
       <div className="px-8 py-8">
         <div className="space-y-3">
-          {sortedAlerts.length === 0 ? (
-            <Card className="bg-slate-900 border-slate-800">
+          {loading ? (
+            <Card className="border-slate-800 bg-slate-900">
+              <CardContent className="p-12 text-center text-slate-400">Loading…</CardContent>
+            </Card>
+          ) : sortedAlerts.length === 0 ? (
+            <Card className="border-slate-800 bg-slate-900">
               <CardContent className="p-12 text-center">
-                <p className="text-slate-400">No alerts found matching your criteria</p>
+                <p className="text-slate-400">No alerts for this filter</p>
               </CardContent>
             </Card>
           ) : (
             sortedAlerts.map((alert) => (
-              <Card 
-                key={alert.id}
-                className="bg-slate-900 border-slate-800 hover:border-slate-700 transition-all hover:shadow-lg hover:shadow-emerald-900/10"
+              <Card
+                key={alert.alert_id}
+                className="border-slate-800 bg-slate-900 transition-all hover:border-slate-700 hover:shadow-lg hover:shadow-emerald-900/10"
               >
                 <CardContent className="p-5">
-                  <div className="flex items-start justify-between gap-4 mb-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-3 mb-2">
-                        <Badge variant="outline" className={getStatusBadge(alert.status)}>
+                  <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0 flex-1">
+                      <div className="mb-2 flex flex-wrap items-center gap-3">
+                        <Badge variant="outline" className={statusBadge(alert.status)}>
                           {alert.status}
                         </Badge>
                         <span className="text-xs text-slate-500">
-                          {formatTimeAgo(alert.detectedTime)}
+                          {formatTimeAgo(alert.detected_at)}
                         </span>
                       </div>
-                      
-                      <Link 
-                        to={`/events/${alert.eventId}`}
-                        className="text-white hover:text-emerald-400 transition-colors font-medium block mb-3"
-                        onClick={() => {
-                          if (alert.status === 'new') {
-                            updateStatus(alert.id, 'viewed');
-                          }
-                        }}
-                      >
-                        {alert.eventTitle}
-                      </Link>
 
-                      <div className="flex items-center gap-4">
-                        <div className="text-3xl font-semibold text-emerald-400 flex items-center gap-2">
-                          {alert.profitPercent.toFixed(2)}%
+                      {alert.event_id != null ? (
+                        <Link
+                          to={`/events/${alert.event_id}`}
+                          className="mb-3 block font-medium text-white transition-colors hover:text-emerald-400"
+                        >
+                          {alert.event_title}
+                        </Link>
+                      ) : (
+                        <span className="mb-3 block font-medium text-white">{alert.event_title}</span>
+                      )}
+
+                      <div className="flex flex-wrap items-center gap-4">
+                        <div className="flex items-center gap-2 text-3xl font-semibold text-emerald-400">
+                          {alert.profit_percent.toFixed(2)}%
                         </div>
-                        <span className="text-sm text-slate-500">profit opportunity</span>
+                        <span className="text-sm text-slate-500">model profit margin</span>
                       </div>
+                      <p className="mt-2 text-xs text-slate-600">
+                        Venues: {alert.mapped_exchanges || "—"}
+                      </p>
                     </div>
 
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        asChild
-                        className="text-slate-400 hover:text-white hover:bg-slate-800"
-                      >
-                        <Link to={`/events/${alert.eventId}`}>
-                          <Eye className="h-4 w-4 mr-1" />
-                          View
-                        </Link>
-                      </Button>
-                      {alert.status !== 'archived' && (
-                        <Button 
-                          variant="ghost" 
+                    <div className="flex flex-shrink-0 items-center gap-2">
+                      {alert.event_id != null && (
+                        <Button
+                          variant="ghost"
                           size="sm"
-                          onClick={() => updateStatus(alert.id, 'archived')}
-                          className="text-slate-400 hover:text-white hover:bg-slate-800"
+                          asChild
+                          className="text-slate-400 hover:bg-slate-800 hover:text-white"
                         >
-                          <Archive className="h-4 w-4 mr-1" />
-                          Archive
+                          <Link to={`/events/${alert.event_id}`}>
+                            <Eye className="mr-1 h-4 w-4" />
+                            Event
+                          </Link>
+                        </Button>
+                      )}
+                      {alert.status === "Active" && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          type="button"
+                          onClick={() => archive(alert.alert_id)}
+                          className="text-slate-400 hover:bg-slate-800 hover:text-white"
+                        >
+                          <Archive className="mr-1 h-4 w-4" />
+                          Expire
                         </Button>
                       )}
                     </div>

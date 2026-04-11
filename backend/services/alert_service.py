@@ -13,6 +13,7 @@ class AlertService:
     ACTIVE_ALERTS_QUERY = """
         SELECT
             aa.Alert_id AS alert_id,
+            e.Event_id AS event_id,
             e.Title AS event_title,
             GROUP_CONCAT(DISTINCT ex.Name ORDER BY ex.Name SEPARATOR ' | ') AS mapped_exchanges,
             aa.Profit_margin AS profit_margin,
@@ -28,6 +29,7 @@ class AlertService:
         WHERE aa.Status = %s
         GROUP BY
             aa.Alert_id,
+            e.Event_id,
             e.Title,
             aa.Profit_margin,
             aa.Status,
@@ -163,10 +165,40 @@ class AlertService:
         ORDER BY ex.Name, m.Exchange_market_code
     """
 
+    LIST_ALERTS_QUERY = """
+        SELECT
+            aa.Alert_id AS alert_id,
+            e.Title AS event_title,
+            GROUP_CONCAT(DISTINCT ex.Name ORDER BY ex.Name SEPARATOR ' | ') AS mapped_exchanges,
+            aa.Profit_margin AS profit_margin,
+            aa.Status AS status,
+            aa.Detected_at AS detected_at,
+            e.Event_id AS event_id
+        FROM ArbitrageAlert aa
+        JOIN MarketMapping mm ON mm.Mapping_id = aa.Mapping_id
+        JOIN Event e ON e.Event_id = mm.Event_id
+        LEFT JOIN Market m
+            ON m.Mapping_id = mm.Mapping_id
+            OR (m.Mapping_id IS NULL AND m.Event_id = mm.Event_id)
+        LEFT JOIN Exchange ex ON ex.Exchange_id = m.Exchange_id
+        WHERE (%s IS NULL OR aa.Status = %s)
+        GROUP BY
+            aa.Alert_id,
+            e.Event_id,
+            e.Title,
+            aa.Profit_margin,
+            aa.Status,
+            aa.Detected_at
+        ORDER BY aa.Detected_at DESC, aa.Profit_margin DESC
+    """
+
     def list_active_alerts(self, connection: Any) -> list[AlertRow]:
+        return self.list_alerts(connection, status="Active")
+
+    def list_alerts(self, connection: Any, status: str | None = None) -> list[AlertRow]:
         cursor = connection.cursor(dictionary=True)
         try:
-            cursor.execute(self.ACTIVE_ALERTS_QUERY, ("Active",))
+            cursor.execute(self.LIST_ALERTS_QUERY, (status, status))
             rows = cursor.fetchall()
             return [AlertRow.from_row(row) for row in rows]
         finally:

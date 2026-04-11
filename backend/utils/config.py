@@ -23,7 +23,9 @@ def _load_dotenv() -> None:
         key = key.strip()
         value = value.strip().strip("'").strip('"')
 
-        if key and key not in os.environ:
+        # Apply when unset or explicitly empty so a real password in `.env` is not
+        # blocked by `export ARBSCANNER_DB_PASSWORD=` (empty) in the shell.
+        if key and os.environ.get(key, "") == "":
             os.environ[key] = value
 
 

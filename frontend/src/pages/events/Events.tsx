@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { Search, Filter, ExternalLink } from "lucide-react";
 import { Card, CardContent } from "../../components/ui/card";
@@ -12,8 +12,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../components/ui/select";
-import { events } from "../../data/mockData";
 import { cn } from "../../components/ui/utils";
+import type { ApiEventListItem } from "../../api/types";
+import { getEvents } from "../../api/client";
 
 function searchTokens(query: string) {
   return query
@@ -24,17 +25,48 @@ function searchTokens(query: string) {
     .filter(Boolean);
 }
 
+function displayCategory(category: string | null) {
+  return category?.trim() || "Uncategorized";
+}
+
 export default function Events() {
   const [searchParams] = useSearchParams();
+  const [events, setEvents] = useState<ApiEventListItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "closed">(
     "all"
   );
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await getEvents();
+        if (!cancelled) setEvents(data);
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e.message : "Failed to load events");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const categories = useMemo(
-    () => ["all", ...Array.from(new Set(events.map((e) => e.category)))],
-    []
+    () => [
+      "all",
+      ...Array.from(
+        new Set(events.map((e) => displayCategory(e.category)))
+      ).sort(),
+    ],
+    [events]
   );
 
   useEffect(() => {
@@ -42,26 +74,28 @@ export default function Events() {
     const cat = searchParams.get("cat");
     const status = searchParams.get("status");
     if (q != null) setSearchQuery(q.replace(/\+/g, " "));
-    if (cat && events.some((e) => e.category === cat)) setCategoryFilter(cat);
+    if (cat && categories.includes(cat)) setCategoryFilter(cat);
     if (status === "active" || status === "closed") setStatusFilter(status);
-  }, [searchParams]);
+  }, [searchParams, categories]);
 
   const tokens = useMemo(() => searchTokens(searchQuery), [searchQuery]);
 
   const filteredEvents = events.filter((event) => {
-    const hay = `${event.title} ${event.category} ${event.description ?? ""}`.toLowerCase();
+    const cat = displayCategory(event.category);
+    const hay = `${event.title} ${cat} ${event.market_count} ${event.mapping_count}`.toLowerCase();
     const matchesTokens =
-      tokens.length === 0 ||
-      tokens.every((t) => hay.includes(t));
+      tokens.length === 0 || tokens.every((t) => hay.includes(t));
     const matchesCategory =
-      categoryFilter === "all" || event.category === categoryFilter;
+      categoryFilter === "all" || cat === categoryFilter;
     const matchesStatus =
       statusFilter === "all" || event.status === statusFilter;
     return matchesTokens && matchesCategory && matchesStatus;
   });
 
-  const formatCloseTime = (dateString: string) => {
-    const date = new Date(dateString);
+  const formatCloseTime = (iso: string | null) => {
+    if (!iso) return "—";
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return "—";
     return date.toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
@@ -78,6 +112,7 @@ export default function Events() {
       Stocks: "bg-green-500/20 text-green-400 border-green-500/30",
       Technology: "bg-purple-500/20 text-purple-400 border-purple-500/30",
       Commodities: "bg-amber-500/20 text-amber-400 border-amber-500/30",
+      Uncategorized: "bg-slate-500/20 text-slate-400 border-slate-500/30",
     };
     return colors[category] || "bg-slate-500/20 text-slate-400 border-slate-500/30";
   };
@@ -90,13 +125,13 @@ export default function Events() {
             <div>
               <h1 className="mb-1 text-2xl font-semibold text-white">Events</h1>
               <p className="text-sm text-slate-400">
-                Browse prediction market events
+                Browse prediction market events from the database
               </p>
             </div>
             <div className="text-right">
               <div className="mb-1 text-xs text-slate-500">Total Events</div>
               <div className="text-2xl font-semibold text-white">
-                {events.length}
+                {loading ? "—" : events.length}
               </div>
             </div>
           </div>
@@ -123,7 +158,7 @@ export default function Events() {
                   type="search"
                   autoComplete="off"
                   spellCheck={false}
-                  placeholder="crypto · tesla · active · stocks…"
+                  placeholder="crypto · fed · active · stocks…"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="h-10 flex-1 border-0 bg-transparent pl-0 text-sm text-white shadow-none placeholder:text-slate-600 placeholder:font-sans focus-visible:ring-0"
@@ -178,14 +213,26 @@ export default function Events() {
           </div>
 
           <div className="mt-4 text-sm text-slate-500">
-            Showing {filteredEvents.length} of {events.length} events
+            {error ? (
+              <span className="text-red-400">{error}</span>
+            ) : (
+              <>
+                Showing {filteredEvents.length} of {events.length} events
+              </>
+            )}
           </div>
         </div>
       </div>
 
       <div className="px-8 py-8">
         <div className="space-y-3">
-          {filteredEvents.length === 0 ? (
+          {loading ? (
+            <Card className="border-slate-800 bg-slate-900">
+              <CardContent className="p-12 text-center text-slate-400">
+                Loading events…
+              </CardContent>
+            </Card>
+          ) : filteredEvents.length === 0 ? (
             <Card className="border-slate-800 bg-slate-900">
               <CardContent className="p-12 text-center">
                 <p className="text-slate-400">
@@ -194,65 +241,69 @@ export default function Events() {
               </CardContent>
             </Card>
           ) : (
-            filteredEvents.map((event) => (
-              <Card
-                key={event.id}
-                className="border-slate-800 bg-slate-900 transition-all hover:border-slate-700 hover:shadow-lg hover:shadow-emerald-900/10"
-              >
-                <CardContent className="p-5">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0 flex-1">
-                      <Link
-                        to={`/events/${event.id}`}
-                        className="mb-2 block text-lg font-semibold text-white transition-colors hover:text-emerald-400"
-                      >
-                        {event.title}
-                      </Link>
+            filteredEvents.map((event) => {
+              const cat = displayCategory(event.category);
+              return (
+                <Card
+                  key={event.event_id}
+                  className="border-slate-800 bg-slate-900 transition-all hover:border-slate-700 hover:shadow-lg hover:shadow-emerald-900/10"
+                >
+                  <CardContent className="p-5">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0 flex-1">
+                        <Link
+                          to={`/events/${event.event_id}`}
+                          className="mb-2 block text-lg font-semibold text-white transition-colors hover:text-emerald-400"
+                        >
+                          {event.title}
+                        </Link>
 
-                      {event.description && (
-                        <p className="mb-3 line-clamp-2 text-sm text-slate-400">
-                          {event.description}
+                        <p className="mb-3 text-sm text-slate-400">
+                          {event.market_count} market
+                          {event.market_count === 1 ? "" : "s"} ·{" "}
+                          {event.mapping_count} mapping
+                          {event.mapping_count === 1 ? "" : "s"}
                         </p>
-                      )}
 
-                      <div className="flex flex-wrap items-center gap-3">
-                        <Badge
-                          variant="outline"
-                          className={getCategoryColor(event.category)}
-                        >
-                          {event.category}
-                        </Badge>
-                        <span className="text-sm text-slate-500">
-                          Closes: {formatCloseTime(event.closeTime)}
-                        </span>
-                        <Badge
-                          variant="outline"
-                          className={
-                            event.status === "active"
-                              ? "border-emerald-500/30 bg-emerald-500/20 text-emerald-400"
-                              : "border-slate-500/30 bg-slate-500/20 text-slate-400"
-                          }
-                        >
-                          {event.status}
-                        </Badge>
+                        <div className="flex flex-wrap items-center gap-3">
+                          <Badge
+                            variant="outline"
+                            className={getCategoryColor(cat)}
+                          >
+                            {cat}
+                          </Badge>
+                          <span className="text-sm text-slate-500">
+                            Closes: {formatCloseTime(event.close_time)}
+                          </span>
+                          <Badge
+                            variant="outline"
+                            className={
+                              event.status === "active"
+                                ? "border-emerald-500/30 bg-emerald-500/20 text-emerald-400"
+                                : "border-slate-500/30 bg-slate-500/20 text-slate-400"
+                            }
+                          >
+                            {event.status}
+                          </Badge>
+                        </div>
                       </div>
-                    </div>
 
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      asChild
-                      className="flex-shrink-0 text-slate-400 hover:bg-slate-800 hover:text-white"
-                    >
-                      <Link to={`/events/${event.id}`}>
-                        View Markets
-                        <ExternalLink className="ml-2 h-4 w-4" />
-                      </Link>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        asChild
+                        className="flex-shrink-0 text-slate-400 hover:bg-slate-800 hover:text-white"
+                      >
+                        <Link to={`/events/${event.event_id}`}>
+                          View detail
+                          <ExternalLink className="ml-2 h-4 w-4" />
+                        </Link>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })
           )}
         </div>
       </div>

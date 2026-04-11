@@ -16,16 +16,19 @@ class AlertRow:
     profit_margin: Decimal
     status: str
     detected_at: datetime
+    event_id: int | None = None
 
     @classmethod
     def from_row(cls, row: Mapping[str, Any]) -> "AlertRow":
+        eid = row.get("event_id")
         return cls(
             alert_id=int(row["alert_id"]),
             event_title=str(row["event_title"]),
-            mapped_exchanges=str(row["mapped_exchanges"]),
+            mapped_exchanges=str(row["mapped_exchanges"] or ""),
             profit_margin=Decimal(str(row["profit_margin"])),
             status=str(row["status"]),
             detected_at=row["detected_at"],
+            event_id=None if eid is None else int(eid),
         )
 
     @property

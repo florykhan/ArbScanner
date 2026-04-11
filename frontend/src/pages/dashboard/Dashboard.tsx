@@ -1,61 +1,118 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
-import { TrendingUp, Clock, Zap, ExternalLink } from "lucide-react";
+import { TrendingUp, Clock, Zap, ExternalLink, Database } from "lucide-react";
 import { Card, CardContent } from "../../components/ui/card";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import ArbitrageFlow from "../../components/ArbitrageFlow";
 import { ScannerConsole } from "../../components/command/ScannerConsole";
-import { arbitrageOpportunities } from "../../data/mockData";
+import type { ApiAlertRow, ApiDashboardStats, ApiMeta } from "../../api/types";
+import {
+  getAlerts,
+  getDashboardStats,
+  getMeta,
+  splitMappedExchanges,
+} from "../../api/client";
 
 export default function Dashboard() {
-  const activeOpportunities = arbitrageOpportunities
-    .filter(o => o.status === 'active')
-    .sort((a, b) => b.profitPercent - a.profitPercent);
+  const [stats, setStats] = useState<ApiDashboardStats | null>(null);
+  const [meta, setMeta] = useState<ApiMeta | null>(null);
+  const [activeAlerts, setActiveAlerts] = useState<ApiAlertRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const topOpportunity = activeOpportunities[0];
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const [s, m, a] = await Promise.all([
+          getDashboardStats(),
+          getMeta(),
+          getAlerts("Active"),
+        ]);
+        if (!cancelled) {
+          setStats(s);
+          setMeta(m);
+          setActiveAlerts(
+            [...a].sort((x, y) => y.profit_percent - x.profit_percent)
+          );
+        }
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e.message : "Load failed");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const topOpportunity = activeAlerts[0];
 
   const scannerLines = useMemo(() => {
-    const n = activeOpportunities.length;
-    const top = topOpportunity?.eventTitle ?? "—";
+    const n = activeAlerts.length;
+    const top = topOpportunity?.event_title ?? "—";
     const shortTop = top.length > 52 ? `${top.slice(0, 49)}…` : top;
+    const snap = stats?.latest_snapshot_at
+      ? new Date(stats.latest_snapshot_at).toLocaleString()
+      : "—";
     return [
-      { text: "scanning 8 exchanges…", variant: "muted" as const },
-      { text: `${n} opportunit${n === 1 ? "y" : "ies"} detected`, variant: "default" as const },
       {
-        text: `highest spread candidate: ${shortTop}`,
+        text: stats?.scanner_message ?? "Scanner status unavailable",
+        variant: "muted" as const,
+      },
+      {
+        text: `${meta?.exchange_count ?? "—"} exchanges · ${meta?.market_count ?? "—"} markets in DB`,
+        variant: "default" as const,
+      },
+      {
+        text: `${n} active alert${n === 1 ? "" : "s"} · top: ${shortTop}`,
         variant: "accent" as const,
       },
-      { text: "feed refreshed 30s ago", variant: "muted" as const },
+      { text: `Latest snapshot: ${snap}`, variant: "muted" as const },
     ];
-  }, [activeOpportunities.length, topOpportunity?.eventTitle]);
+  }, [activeAlerts.length, meta, stats, topOpportunity?.event_title]);
 
-  const formatTimeAgo = (dateString: string) => {
-    const minutes = Math.floor((Date.now() - new Date(dateString).getTime()) / 60000);
+  const formatTimeAgo = (iso: string | null) => {
+    if (!iso) return "—";
+    const minutes = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
     if (minutes < 60) return `${minutes}m ago`;
     const hours = Math.floor(minutes / 60);
     if (hours < 24) return `${hours}h ago`;
     return `${Math.floor(hours / 24)}d ago`;
   };
 
+  const avgMargin =
+    activeAlerts.length > 0
+      ? activeAlerts.reduce((a, o) => a + o.profit_percent, 0) / activeAlerts.length
+      : null;
+
   return (
     <div className="min-h-screen bg-slate-950">
-      {/* Header */}
-      <div className="border-b border-slate-800 bg-slate-900/50 backdrop-blur-sm sticky top-0 z-10">
+      <div className="sticky top-0 z-10 border-b border-slate-800 bg-slate-900/50 backdrop-blur-sm">
         <div className="px-8 py-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-semibold text-white mb-1">Arbitrage Scanner</h1>
-              <p className="text-sm text-slate-400">Real-time prediction market opportunities</p>
+              <h1 className="mb-1 text-2xl font-semibold text-white">Arbitrage Scanner</h1>
+              <p className="text-sm text-slate-400">
+                Active alerts and database health from the backend
+              </p>
             </div>
             <div className="flex items-center gap-6">
               <div className="text-right">
-                <div className="text-xs text-slate-500 mb-1">Active Opportunities</div>
-                <div className="text-2xl font-semibold text-emerald-400">{activeOpportunities.length}</div>
+                <div className="mb-1 text-xs text-slate-500">Active alerts</div>
+                <div className="text-2xl font-semibold text-emerald-400">
+                  {loading ? "—" : stats?.active_alert_count ?? 0}
+                </div>
               </div>
               <div className="text-right">
-                <div className="text-xs text-slate-500 mb-1">Total Events</div>
-                <div className="text-2xl font-semibold text-white">248</div>
+                <div className="mb-1 text-xs text-slate-500">Events in DB</div>
+                <div className="text-2xl font-semibold text-white">
+                  {loading ? "—" : meta?.event_count ?? "—"}
+                </div>
               </div>
             </div>
           </div>
@@ -63,41 +120,47 @@ export default function Dashboard() {
       </div>
 
       <div className="px-8 py-8">
+        {error && (
+          <p className="mb-4 text-sm text-red-400">{error}</p>
+        )}
         <ScannerConsole lines={scannerLines} className="mb-6 max-w-3xl" />
 
-        {/* Best Opportunity Highlight */}
-        {topOpportunity && (
-          <Card className="mb-8 bg-gradient-to-br from-emerald-950 to-slate-900 border-emerald-800 overflow-hidden">
+        {!loading && topOpportunity && topOpportunity.event_id != null && (
+          <Card className="mb-8 overflow-hidden border-emerald-800 bg-gradient-to-br from-emerald-950 to-slate-900">
             <CardContent className="p-6">
-              <div className="flex items-start justify-between mb-4">
+              <div className="mb-4 flex items-start justify-between">
                 <div className="flex items-center gap-2">
                   <Zap className="h-5 w-5 text-amber-400" />
-                  <span className="text-sm font-medium text-amber-400 uppercase tracking-wide">Best Opportunity</span>
+                  <span className="text-sm font-medium uppercase tracking-wide text-amber-400">
+                    Highest margin (active)
+                  </span>
                 </div>
-                <Badge className="bg-emerald-500 text-white">
-                  New
-                </Badge>
+                <Badge className="bg-emerald-600 text-white">{topOpportunity.status}</Badge>
               </div>
-              
-              <Link 
-                to={`/events/${topOpportunity.eventId}`}
-                className="text-xl font-semibold text-white hover:text-emerald-400 transition-colors mb-4 block"
+
+              <Link
+                to={`/events/${topOpportunity.event_id}`}
+                className="mb-4 block text-xl font-semibold text-white transition-colors hover:text-emerald-400"
               >
-                {topOpportunity.eventTitle}
+                {topOpportunity.event_title}
               </Link>
 
-              <div className="flex items-center justify-between">
-                <ArbitrageFlow
-                  buyExchange={topOpportunity.buyExchange}
-                  sellExchange={topOpportunity.sellExchange}
-                  profitPercent={topOpportunity.profitPercent}
-                  estimatedProfit={topOpportunity.estimatedProfit}
-                  size="lg"
-                />
+              <div className="flex flex-col items-stretch justify-between gap-4 sm:flex-row sm:items-center">
+                {(() => {
+                  const [buy, sell] = splitMappedExchanges(topOpportunity.mapped_exchanges);
+                  return (
+                    <ArbitrageFlow
+                      buyExchange={buy}
+                      sellExchange={sell}
+                      profitPercent={topOpportunity.profit_percent}
+                      size="lg"
+                    />
+                  );
+                })()}
                 <Button asChild className="bg-emerald-600 hover:bg-emerald-500">
-                  <Link to={`/events/${topOpportunity.eventId}`}>
-                    View Details
-                    <ExternalLink className="h-4 w-4 ml-2" />
+                  <Link to={`/events/${topOpportunity.event_id}`}>
+                    View event
+                    <ExternalLink className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>
               </div>
@@ -105,81 +168,100 @@ export default function Dashboard() {
           </Card>
         )}
 
-        {/* Opportunities List */}
         <div>
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold text-white">Live Opportunities</h2>
+          <div className="mb-6 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-white">Active alerts</h2>
             <Button variant="ghost" size="sm" asChild className="text-slate-400 hover:text-white">
               <Link to="/alerts">
-                View All Alerts
-                <ExternalLink className="h-4 w-4 ml-2" />
+                All alerts
+                <ExternalLink className="ml-2 h-4 w-4" />
               </Link>
             </Button>
           </div>
 
           <div className="space-y-3">
-            {activeOpportunities.map((opp, index) => (
-              <Card 
-                key={opp.id} 
-                className="bg-slate-900 border-slate-800 hover:border-slate-700 transition-all hover:shadow-lg hover:shadow-emerald-900/20"
-              >
-                <CardContent className="p-5">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-3 mb-3">
-                        {index === 0 && (
-                          <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30">
-                            #1
-                          </Badge>
-                        )}
-                        <Link 
-                          to={`/events/${opp.eventId}`}
-                          className="text-white hover:text-emerald-400 transition-colors font-medium truncate"
-                        >
-                          {opp.eventTitle}
-                        </Link>
-                      </div>
-                      
-                      <ArbitrageFlow
-                        buyExchange={opp.buyExchange}
-                        sellExchange={opp.sellExchange}
-                        profitPercent={opp.profitPercent}
-                        estimatedProfit={opp.estimatedProfit}
-                      />
-                    </div>
-
-                    <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                      <div className="flex items-center gap-1 text-xs text-slate-500">
-                        <Clock className="h-3 w-3" />
-                        {formatTimeAgo(opp.detectedTime)}
-                      </div>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        asChild
-                        className="text-slate-400 hover:text-white hover:bg-slate-800"
-                      >
-                        <Link to={`/events/${opp.eventId}`}>
-                          Analyze
-                        </Link>
-                      </Button>
-                    </div>
-                  </div>
+            {loading ? (
+              <Card className="border-slate-800 bg-slate-900">
+                <CardContent className="p-8 text-center text-slate-500">Loading…</CardContent>
+              </Card>
+            ) : activeAlerts.length === 0 ? (
+              <Card className="border-slate-800 bg-slate-900">
+                <CardContent className="p-8 text-center text-slate-500">
+                  No active arbitrage alerts. Run a sync or mock scan to populate the database.
                 </CardContent>
               </Card>
-            ))}
+            ) : (
+              activeAlerts.map((opp, index) => {
+                const [buy, sell] = splitMappedExchanges(opp.mapped_exchanges);
+                return (
+                  <Card
+                    key={opp.alert_id}
+                    className="border-slate-800 bg-slate-900 transition-all hover:border-slate-700 hover:shadow-lg hover:shadow-emerald-900/20"
+                  >
+                    <CardContent className="p-5">
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0 flex-1">
+                          <div className="mb-3 flex flex-wrap items-center gap-3">
+                            {index === 0 && (
+                              <Badge className="border-amber-500/30 bg-amber-500/20 text-amber-400">
+                                #1
+                              </Badge>
+                            )}
+                            {opp.event_id != null ? (
+                              <Link
+                                to={`/events/${opp.event_id}`}
+                                className="truncate font-medium text-white transition-colors hover:text-emerald-400"
+                              >
+                                {opp.event_title}
+                              </Link>
+                            ) : (
+                              <span className="font-medium text-white">{opp.event_title}</span>
+                            )}
+                          </div>
+
+                          <ArbitrageFlow
+                            buyExchange={buy}
+                            sellExchange={sell}
+                            profitPercent={opp.profit_percent}
+                          />
+                          <p className="mt-2 text-xs text-slate-500">
+                            Venues (mapped): {opp.mapped_exchanges || "—"}
+                          </p>
+                        </div>
+
+                        <div className="flex flex-shrink-0 flex-col items-end gap-2">
+                          <div className="flex items-center gap-1 text-xs text-slate-500">
+                            <Clock className="h-3 w-3" />
+                            {formatTimeAgo(opp.detected_at)}
+                          </div>
+                          {opp.event_id != null && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              asChild
+                              className="text-slate-400 hover:bg-slate-800 hover:text-white"
+                            >
+                              <Link to={`/events/${opp.event_id}`}>Event detail</Link>
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })
+            )}
           </div>
         </div>
 
-        {/* Quick Stats Footer */}
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="bg-slate-900 border-slate-800">
+        <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-3">
+          <Card className="border-slate-800 bg-slate-900">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-xs text-slate-500 mb-1">Avg Profit</div>
+                  <div className="mb-1 text-xs text-slate-500">Avg active margin</div>
                   <div className="text-xl font-semibold text-white">
-                    {(activeOpportunities.reduce((acc, o) => acc + o.profitPercent, 0) / activeOpportunities.length).toFixed(2)}%
+                    {avgMargin != null ? `${avgMargin.toFixed(2)}%` : "—"}
                   </div>
                 </div>
                 <TrendingUp className="h-8 w-8 text-emerald-500/50" />
@@ -187,26 +269,30 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-900 border-slate-800">
+          <Card className="border-slate-800 bg-slate-900">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-xs text-slate-500 mb-1">Exchanges</div>
-                  <div className="text-xl font-semibold text-white">8</div>
+                  <div className="mb-1 text-xs text-slate-500">Price snapshots</div>
+                  <div className="text-xl font-semibold text-white">
+                    {stats?.total_snapshots ?? "—"}
+                  </div>
                 </div>
-                <div className="text-2xl text-slate-700">⚡</div>
+                <Database className="h-8 w-8 text-slate-600" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-900 border-slate-800">
+          <Card className="border-slate-800 bg-slate-900">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-xs text-slate-500 mb-1">24h Volume</div>
-                  <div className="text-xl font-semibold text-white">$2.4M</div>
+                  <div className="mb-1 text-xs text-slate-500">Exchanges configured</div>
+                  <div className="text-xl font-semibold text-white">
+                    {meta?.exchange_count ?? "—"}
+                  </div>
                 </div>
-                <div className="text-2xl text-slate-700">💰</div>
+                <div className="text-2xl text-slate-700">⚡</div>
               </div>
             </CardContent>
           </Card>
