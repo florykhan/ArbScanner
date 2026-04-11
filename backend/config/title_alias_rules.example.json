@@ -1,0 +1,9 @@
+[
+  {
+    "canonical_title": "2028 US Presidential Election Winner",
+    "patterns": {
+      "Polymarket": "2028.*presidential election",
+      "Manifold": "2028.*presidential election"
+    }
+  }
+]

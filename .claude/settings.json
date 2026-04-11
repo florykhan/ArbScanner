@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__nia__manage_resource",
+      "mcp__nia__search",
+      "mcp__nia__nia_explore",
+      "mcp__nia__nia_read",
+      "Bash(python3 -m pip show textual)",
+      "Bash(pip3 show:*)",
+      "Bash(pip show:*)",
+      "Read(//Users/Rushik/Library/Python/3.11/lib/python/site-packages/textual/**)",
+      "Read(//opt/homebrew/bin/**)"
+    ]
+  }
+}
