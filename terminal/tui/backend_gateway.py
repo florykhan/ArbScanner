@@ -7,7 +7,7 @@ from typing import Any, Sequence
 
 import mysql.connector
 
-from backend.models.alert_view import AlertRow
+from backend.models.alert_view import AlertDetail, AlertRow
 from backend.models.dashboard_view import ActivityItem, DashboardStats
 from backend.services.alert_service import AlertService
 from backend.services.dashboard_service import DashboardService
@@ -134,6 +134,10 @@ class TerminalBackendGateway:
     def dismiss_alert(self, alert_id: int) -> None:
         with db_session(self.db_config) as connection:
             self.alert_service.dismiss_alert(connection, alert_id)
+
+    def load_alert_detail(self, alert_id: int) -> AlertDetail | None:
+        with db_session(self.db_config) as connection:
+            return self.alert_service.get_alert_detail(connection, alert_id)
 
     # ── Ad-hoc query helpers (SQL inspector + :query palette) ──
 

@@ -18,7 +18,11 @@ from textual.widgets import DataTable, Footer, RichLog, Static
 from backend.models.alert_view import AlertRow
 from terminal.tui.backend_gateway import DashboardSnapshot, TerminalBackendGateway
 from terminal.tui.query_loader import load_labeled_queries
-from terminal.tui.screens import CommandPaletteScreen, SqlInspectorScreen
+from terminal.tui.screens import (
+    AlertDetailScreen,
+    CommandPaletteScreen,
+    SqlInspectorScreen,
+)
 from terminal.tui.widgets import (
     BootScreen,
     HeatmapGrid,
@@ -70,9 +74,25 @@ def _ts_full(value: datetime | None) -> str:
     return value.strftime("%Y-%m-%d %H:%M:%S") if value else "N/A"
 
 
+def _date_short(value: datetime | None) -> str:
+    return value.strftime("%Y-%m-%d") if value else "N/A"
+
+
 def _fmt_margin(value: Decimal | None) -> str:
     if value is None:
         return "-.--"
+    return f"{value * Decimal('100'):.2f}"
+
+
+def _fmt_pct(value: Decimal | None) -> str:
+    if value is None:
+        return "--.--%"
+    return f"{value:.2f}%"
+
+
+def _fmt_price(value: Decimal | None) -> str:
+    if value is None:
+        return "--.--"
     return f"{value * Decimal('100'):.2f}"
 
 
@@ -99,6 +119,47 @@ def _flash_color(frame: int) -> str:
     g = int(_FLASH_START_RGB[1] + (_FLASH_END_RGB[1] - _FLASH_START_RGB[1]) * t)
     b = int(_FLASH_START_RGB[2] + (_FLASH_END_RGB[2] - _FLASH_START_RGB[2]) * t)
     return f"#{r:02x}{g:02x}{b:02x}"
+
+
+def _age_label(value: datetime | None, *, now: datetime | None = None) -> str:
+    if value is None:
+        return "N/A"
+    current = now or datetime.now()
+    delta = current - value
+    total_seconds = int(abs(delta.total_seconds()))
+    days, remainder = divmod(total_seconds, 86400)
+    hours, remainder = divmod(remainder, 3600)
+    minutes, _seconds = divmod(remainder, 60)
+    parts: list[str] = []
+    if days:
+        parts.append(f"{days}d")
+    if hours or days:
+        parts.append(f"{hours}h")
+    parts.append(f"{minutes}m")
+    return " ".join(parts)
+
+
+def _countdown_label(value: datetime | None, *, now: datetime | None = None) -> str:
+    if value is None:
+        return "OPEN"
+    current = now or datetime.now()
+    if value <= current:
+        return "CLOSED"
+    delta = value - current
+    total_seconds = int(delta.total_seconds())
+    days, remainder = divmod(total_seconds, 86400)
+    hours, remainder = divmod(remainder, 3600)
+    minutes, _seconds = divmod(remainder, 60)
+    if days:
+        return f"{days}d {hours}h"
+    if hours:
+        return f"{hours}h {minutes}m"
+    return f"{minutes}m"
+
+
+def _venue_code(name: str) -> str:
+    cleaned = "".join(ch for ch in name.upper() if ch.isalnum())
+    return cleaned[:6].ljust(6)
 
 
 # ── Application ─────────────────────────────────────────────────
@@ -348,6 +409,7 @@ class ArbScannerTerminalApp(App[None]):
 
     BINDINGS = [
         Binding("r",             "refresh_dashboard",       "Refresh"),
+        Binding("enter",         "toggle_alert_expansion",  "Open", key_display="↵"),
         Binding("d",             "dismiss_selected_alert",  "Dismiss"),
         Binding("colon",         "open_palette",            "Cmd", key_display=":"),
         Binding("s",             "open_sql_inspector",      "SQL"),
@@ -414,7 +476,7 @@ class ArbScannerTerminalApp(App[None]):
         self.query_one("#mc-scan").border_title = "LAST SCAN"
         self.query_one("#alert-panel").border_title = "Active Alerts"
         self.query_one("#alert-panel").border_subtitle = (
-            "↑↓ nav · d dismiss · : cmd · s sql · ? help"
+            "↑↓ nav · ↵ open · d dismiss · : cmd · s sql · ? help"
         )
         self.query_one("#heatmap-panel").border_title = "Spread Heatmap"
         self.query_one("#heatmap-panel").border_subtitle = "events × exchanges"
@@ -509,6 +571,40 @@ class ArbScannerTerminalApp(App[None]):
             )
         else:
             self._log(snapshot.connection_message, "error")
+
+    def action_toggle_alert_expansion(self) -> None:
+        if not self.alerts:
+            self.notify("No active alerts to open.", severity="warning")
+            return
+        try:
+            alert = self._current_alert_from_table()
+            if alert is None:
+                self.notify("No alert selected.", severity="warning")
+                return
+            detail = self.gateway.load_alert_detail(alert.alert_id)
+        except mysql.connector.Error as exc:
+            self.notify(f"Detail load failed: {exc}", severity="error")
+            self._log(f"Detail load failed #{alert.alert_id}: {exc}", "error")
+            return
+
+        if detail is None:
+            self.notify("Selected alert detail is unavailable.", severity="warning")
+            return
+
+        self.push_screen(AlertDetailScreen(detail))
+
+    def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
+        if event.data_table.id != "alerts-table":
+            return
+        self.action_toggle_alert_expansion()
+
+    def _current_alert_from_table(self) -> AlertRow | None:
+        if not self.alerts:
+            return None
+        table = self.query_one("#alerts-table", DataTable)
+        if table.cursor_row < 0 or table.cursor_row >= len(self.alerts):
+            return None
+        return self.alerts[table.cursor_row]
 
     # ── Command palette ────────────────────────────────────────
 

@@ -26,6 +26,7 @@ _KEYBINDS: tuple[tuple[str, tuple[tuple[str, str], ...]], ...] = (
         "Actions",
         (
             ("r", "Refresh dashboard now"),
+            ("enter", "Open the selected alert detail screen"),
             ("d", "Dismiss the selected alert"),
         ),
     ),
