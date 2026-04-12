@@ -39,3 +39,26 @@ def build_cors_allow_origins() -> list[str]:
         add(part)
 
     return out
+
+
+def build_cors_origin_regex() -> str | None:
+    """
+    Optional regex so multiple origins match (e.g. all Vercel preview URLs).
+
+    Explicit ARBSCANNER_CORS_ORIGIN_REGEX wins. Otherwise, if FRONTEND_URL's host
+    ends with `.vercel.app`, allow any `https://*.vercel.app` unless disabled via
+    ARBSCANNER_CORS_NO_VERCEL_REGEX=1.
+    """
+    explicit = os.getenv("ARBSCANNER_CORS_ORIGIN_REGEX", "").strip()
+    if explicit:
+        return explicit
+    if os.getenv("ARBSCANNER_CORS_NO_VERCEL_REGEX", "").lower() in {"1", "true", "yes"}:
+        return None
+    front = os.getenv("FRONTEND_URL", "").strip()
+    if not front:
+        return None
+    parsed = urlparse(front if "://" in front else f"https://{front}")
+    host = (parsed.hostname or "").lower()
+    if host.endswith(".vercel.app"):
+        return r"https://.*\.vercel\.app"
+    return None

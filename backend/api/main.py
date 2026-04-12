@@ -11,18 +11,21 @@ from mysql.connector import errors as mysql_errors
 from backend.services.alert_service import AlertService
 from backend.services.dashboard_service import DashboardService
 from backend.services.event_catalog_service import EventCatalogService
-from backend.utils.cors_origins import build_cors_allow_origins
+from backend.utils.cors_origins import build_cors_allow_origins, build_cors_origin_regex
 from backend.utils.db import connect_db
 
 app = FastAPI(title="ArbScanner API", version="0.1")
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=build_cors_allow_origins(),
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+_cors_kw: dict[str, Any] = {
+    "allow_origins": build_cors_allow_origins(),
+    "allow_credentials": True,
+    "allow_methods": ["*"],
+    "allow_headers": ["*"],
+}
+_cors_rx = build_cors_origin_regex()
+if _cors_rx:
+    _cors_kw["allow_origin_regex"] = _cors_rx
+app.add_middleware(CORSMiddleware, **_cors_kw)
 
 
 @app.get("/")
