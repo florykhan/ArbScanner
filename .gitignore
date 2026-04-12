@@ -58,6 +58,6 @@ venv/
 tmp/
 
 # Local README example / template (not published)
-README (example).md
+docs/README-example.md
 README 2.md
 README.example.md

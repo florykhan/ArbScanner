@@ -817,7 +817,7 @@ The safest design stance is:
 
 "Build the backend so it can power both the terminal and the web app, but optimize the operator experience around the terminal."
 
-For Rushik's execution-focused plan, see [rushik-backend-terminal-plan.md](/Users/Rushik/Downloads/ArbScanner/docs/final-documentation/rushik-backend-terminal-plan.md).
+For Rushik's execution-focused plan, see [rushik-backend-terminal-plan.md](./rushik-backend-terminal-plan.md).
 
 ## 30. Current Database Baseline
 
