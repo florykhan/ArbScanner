@@ -15,6 +15,8 @@ The goal of this project is to:
 
 The primary planning document is [docs/final-documentation/arbscanner-product-plan.md](docs/final-documentation/arbscanner-product-plan.md).
 
+**Hosted MySQL:** For deployment, this project uses **[Railway](https://railway.app)** to run the MySQL instance. Point your API service’s `ARBSCANNER_DB_HOST`, `ARBSCANNER_DB_PORT`, `ARBSCANNER_DB_USER`, `ARBSCANNER_DB_PASSWORD`, and `ARBSCANNER_DB_NAME` at Railway’s connection details (and apply `database/schema/schema.sql` to that database as usual). Local development still uses whatever MySQL you run on your machine—see [Local hosting](#local-hosting-web-ui--api) below.
+
 ## Current backend entry points
 
 - Mock scan: `python3 -m backend.run_mock_scan`
