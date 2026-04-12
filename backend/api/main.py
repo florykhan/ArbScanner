@@ -11,20 +11,24 @@ from mysql.connector import errors as mysql_errors
 from backend.services.alert_service import AlertService
 from backend.services.dashboard_service import DashboardService
 from backend.services.event_catalog_service import EventCatalogService
+from backend.utils.cors_origins import build_cors_allow_origins
 from backend.utils.db import connect_db
 
 app = FastAPI(title="ArbScanner API", version="0.1")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://127.0.0.1:5173",
-        "http://localhost:5173",
-    ],
+    allow_origins=build_cors_allow_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.get("/")
+def root() -> dict[str, str]:
+    """Lightweight root for load balancers; use `/api/health` for deep checks."""
+    return {"service": "ArbScanner API", "health": "/api/health"}
 
 
 def _jsonable_decimal(value: Decimal | None) -> float | None:
@@ -74,12 +78,25 @@ def get_connection():
                 "set `ARBSCANNER_DB_PASSWORD` to your MySQL user's password (or the correct "
                 "non-root user) and restart `python3 -m backend.run_api`."
             )
+        elif errno in (2003, 2002):
+            hint = (
+                " Cannot reach MySQL (network). For a remote host (e.g. Render MySQL), "
+                "confirm `ARBSCANNER_DB_HOST` / `ARBSCANNER_DB_PORT`, security groups / "
+                "allowed hosts, and use the internal database hostname when both services "
+                "are on the same Render account. Use `ARBSCANNER_DB_SSL_DISABLED=true` only "
+                "for servers without TLS (typical local); omit it for managed SSL."
+            )
+        else:
+            hint = ""
         raise HTTPException(
             status_code=503,
             detail=(
-                "Cannot connect to MySQL. Start the database server (e.g. "
-                "`brew services start mysql` or Docker) and check `ARBSCANNER_DB_*` "
-                f"in your repo `.env`.{hint} Underlying error: {exc}"
+                "Cannot connect to MySQL. Check `ARBSCANNER_DB_HOST`, `ARBSCANNER_DB_PORT`, "
+                "`ARBSCANNER_DB_USER`, `ARBSCANNER_DB_PASSWORD`, and `ARBSCANNER_DB_NAME` "
+                "(and optional `ARBSCANNER_DB_SOCKET` for local socket installs). "
+                "Locally: ensure the server is running (`brew services start mysql`, Docker, etc.). "
+                f"On a host like Render: use the internal database hostname when both services "
+                f"run on the same account.{hint} Underlying error: {exc}"
             ),
         ) from exc
     try:

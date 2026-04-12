@@ -22,6 +22,11 @@ def connect_db(config: DatabaseConfig | None = None) -> Any:
         connection_kwargs["host"] = db_config.host
         connection_kwargs["port"] = db_config.port
 
+    if db_config.connect_timeout > 0:
+        connection_kwargs["connection_timeout"] = db_config.connect_timeout
+    if db_config.ssl_disabled is not None:
+        connection_kwargs["ssl_disabled"] = db_config.ssl_disabled
+
     return mysql.connector.connect(**connection_kwargs)
 
 

@@ -1,10 +1,13 @@
 /**
  * API client for the ArbScanner backend.
- * With the default empty base URL, requests go to the same origin (Vite dev server
- * proxies `/api` to the FastAPI process — see `vite.config.ts`).
- * Set `VITE_API_URL` (e.g. `http://localhost:3001`) when the API is on another origin.
+ * - Local dev: leave both unset so requests use same-origin `/api` (Vite proxy → FastAPI).
+ * - Production (e.g. Vercel): set `VITE_API_BASE_URL` to your Render API origin (no trailing slash).
+ * `VITE_API_URL` is still supported for older `.env` files.
  */
-const raw = import.meta.env.VITE_API_URL ?? "";
+const raw =
+  import.meta.env.VITE_API_BASE_URL ??
+  import.meta.env.VITE_API_URL ??
+  "";
 
 export const apiBaseUrl = raw.replace(/\/$/, "");
 

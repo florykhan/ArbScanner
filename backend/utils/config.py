@@ -40,9 +40,20 @@ class DatabaseConfig:
     password: str = ""
     database: str = "ArbScannerDB"
     unix_socket: str | None = None
+    connect_timeout: int = 10
+    ssl_disabled: bool | None = None
 
     @classmethod
     def from_env(cls) -> "DatabaseConfig":
+        ssl_raw = os.getenv("ARBSCANNER_DB_SSL_DISABLED", "").strip().lower()
+        ssl_disabled: bool | None
+        if ssl_raw in {"1", "true", "yes", "on"}:
+            ssl_disabled = True
+        elif ssl_raw in {"0", "false", "no", "off"}:
+            ssl_disabled = False
+        else:
+            ssl_disabled = None
+
         return cls(
             host=os.getenv("ARBSCANNER_DB_HOST", cls.host),
             port=int(os.getenv("ARBSCANNER_DB_PORT", str(cls.port))),
@@ -50,6 +61,10 @@ class DatabaseConfig:
             password=os.getenv("ARBSCANNER_DB_PASSWORD", cls.password),
             database=os.getenv("ARBSCANNER_DB_NAME", cls.database),
             unix_socket=os.getenv("ARBSCANNER_DB_SOCKET") or None,
+            connect_timeout=int(
+                os.getenv("ARBSCANNER_DB_CONNECT_TIMEOUT", str(cls.connect_timeout))
+            ),
+            ssl_disabled=ssl_disabled,
         )
 
 

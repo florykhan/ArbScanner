@@ -136,7 +136,7 @@ pip install -r requirements.txt
 python3 -m backend.run_api
 ```
 
-Defaults: API at **http://127.0.0.1:3001**. Override with `ARBSCANNER_API_HOST`, `ARBSCANNER_API_PORT`, `ARBSCANNER_API_RELOAD` if needed ([`backend/run_api.py`](backend/run_api.py)).
+Defaults: API at **http://127.0.0.1:3001**. Override with `ARBSCANNER_API_HOST`, `ARBSCANNER_API_PORT`, `ARBSCANNER_API_RELOAD` if needed ([`backend/run_api.py`](backend/run_api.py)). Platforms like **Render** set **`PORT`**; the dev runner then binds **`0.0.0.0`** and uses that port. Production web process: see **[`Procfile`](Procfile)** (Gunicorn + Uvicorn worker).
 
 Sanity check (second terminal):
 
@@ -154,7 +154,7 @@ npm install
 cp .env.example .env
 ```
 
-For local dev, keep **`VITE_API_URL` empty** in `frontend/.env` so the browser talks to the same origin (`http://localhost:5173`) and Vite **proxies** `/api` to port 3001.
+For local dev, keep **`VITE_API_BASE_URL` empty** in `frontend/.env` so the browser talks to the same origin (`http://localhost:5173`) and Vite **proxies** `/api` to port 3001. (`VITE_API_URL` is still read as a fallback.)
 
 ```bash
 npm run dev
@@ -180,7 +180,7 @@ cd frontend
 npm run build
 ```
 
-Output: **`frontend/dist/`**. The preview server does not proxy to the API unless you configure it; set **`VITE_API_URL`** to your deployed API base URL (no trailing slash), or serve API and static files behind one reverse proxy that routes `/api` to FastAPI.
+Output: **`frontend/dist/`**. The preview server does not proxy to the API unless you configure it; set **`VITE_API_BASE_URL`** to your deployed API origin (e.g. `https://your-api.onrender.com`, no trailing slash), and set **`FRONTEND_URL`** / **`ARBSCANNER_CORS_ORIGINS`** on the API so CORS allows your Vercel domain (see [`.env.example`](.env.example)).
 
 ### Troubleshooting
 
