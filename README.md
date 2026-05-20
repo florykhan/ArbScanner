@@ -1,4 +1,4 @@
-# 📊 ArbScanner — Prediction Market Arbitrage Workstation
+ # 📊 ArbScanner — Prediction Market Arbitrage Workstation
 
 **ArbScanner** is a local-first prediction market arbitrage workstation for a single operator. It continuously scans supported exchanges, compares trusted mapped markets across venues, detects potential negative-risk spreads, and exposes system state through a **FastAPI** HTTP API, a **Vite + React** web UI, and an optional **terminal dashboard**. Data lives in **MySQL**; optional **Google Gemini** assists cross-venue title matching when configured.
 
